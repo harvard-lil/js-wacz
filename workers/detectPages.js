@@ -8,7 +8,8 @@ import { WARCParser } from 'warcio'
  * @param {string} filename - Path to .warc or .warc.gz file
  * @returns {Promise<{url: string, title: string, ts: string}[]>}
  */
-async function detectPagesInWARC (filename) {
+export default async (filename) => {
+  fs.accessSync(filename)
   const stream = fs.createReadStream(filename)
   const parser = new WARCParser(stream)
   const pages = []
@@ -60,13 +61,3 @@ async function detectPagesInWARC (filename) {
 
   return pages
 }
-
-process.on('message', async (message) => {
-  if (!message.filename) {
-    throw new Error('Expected "filename" in message.')
-  }
-
-  fs.accessSync(message.filename)
-
-  process.send({ pages: await detectPagesInWARC(message.filename) })
-})

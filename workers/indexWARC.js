@@ -6,7 +6,8 @@ import { CDXIndexer } from 'warcio'
  * @param {string} filename - Path to .warc or .warc.gz file
  * @returns {Promise<string[]>}
  */
-export async function indexWARC (filename) {
+export default async (filename) => {
+  fs.accessSync(filename)
   const cdx = []
   const stream = fs.createReadStream(filename)
   const indexer = new CDXIndexer()
@@ -17,13 +18,3 @@ export async function indexWARC (filename) {
 
   return cdx
 }
-
-process.on('message', async (message) => {
-  if (!message.filename) {
-    throw new Error('Expected "filename" in message.')
-  }
-
-  fs.accessSync(message.filename)
-
-  process.send({ cdx: await indexWARC(message.filename) })
-})
