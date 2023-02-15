@@ -69,4 +69,14 @@ console.time('sort-cdx')
 cdx.sort()
 console.timeEnd('sort-cdx')
 
-// TODO: Many things :) but proof of concept is ok!
+// TODO: Many things :) but basic proof of concept is ok.
+// - Think through actual lib + cli architecture
+// - Create IDX array (every 1000th item of CDX)
+// - pages/pages.jsonl
+// - indexes/index.cdx.gz
+// - indexes/index.idx
+// - archives/*.warc(.gz)
+// - datapackage.json
+// - datapackage-digest.json
+// Extra: signature
+// Extra: accept external pages.jsonl if provided
