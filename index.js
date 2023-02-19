@@ -5,13 +5,14 @@ import fs from 'fs'
 import { createHash } from 'crypto'
 
 import glob from 'glob'
+import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
 
 /** @type {{url: string, title: string, ts: string}[]]} */
 const pages = []
 
-/** @type {string[]} */
-const cdx = []
+/** @type {BTree} */
+const cdx = new BTree.default() // eslint-disable-line
 
 /** @type {string[]} */
 const idx = []
@@ -44,7 +45,10 @@ const indexWARCPool = new Piscina({
 
 await Promise.all(warcs.map(async filename => {
   const results = await indexWARCPool.run(filename)
-  cdx.push(...results)
+
+  for (const value of results) {
+    cdx.setIfNotPresent(value, true)
+  }
 }))
 console.timeEnd('index-warcs')
 
@@ -62,12 +66,7 @@ await Promise.all(warcs.map(async filename => {
 }))
 console.timeEnd('detect-pages')
 
-//
-// Sort CDX
-//
-console.time('sort-cdx')
-cdx.sort()
-console.timeEnd('sort-cdx')
+// Extract sorted CDX: cdx.keysArray()
 
 // TODO: Many things :) but basic proof of concept is ok.
 // - Think through actual lib + cli architecture
