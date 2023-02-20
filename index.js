@@ -15,13 +15,22 @@ import fs from 'fs/promises'
 import { createWriteStream, createReadStream } from 'fs'
 import { createHash } from 'crypto'
 import { basename } from 'path'
-import { gzipSync } from 'zlib'
+import { Deflate } from 'pako'
 
 import glob from 'glob'
 import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
 import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
+
+/**
+ * When building a ZipNum Shared index (index.idx as a lookup table for index.cdx.gz):
+ * How many index lines should be grouped together?
+ *
+ * See: https://pywb.readthedocs.io/en/latest/manual/indexing.html#zipnum-sharded-index
+ * @constant
+ */
+const ZIP_NUM_SHARED_INDEX_LIMIT = 1000
 
 /** @type {{url: string, title: string, ts: string}[]]} */
 const pages = []
@@ -39,8 +48,8 @@ const idxArray = []
 const packageInfo = []
 
 /** @type {string[]} */
-const warcs = glob.sync('tmp/adapt-warcs/*.warc')
-// const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
+// const warcs = glob.sync('tmp/adapt-warcs/*.warc')
+const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
 
 // Clear existing test file
 try {
@@ -133,13 +142,56 @@ cdxTree.clear()
 console.timeEnd('extract-sorted-cdx')
 
 //
-// Build IDX list
+// Create indexes/index.cdx.gz and add it to the archive
 //
-console.time('pick-idx')
-for (let i = 0; i <= cdxArray.length; i += 1000) {
-  idxArray.push(cdxArray[i])
+console.time('write-index-cdx-gz')
+try {
+  /** @type {string|Buffer} */
+  let cdx = Buffer.alloc(0)
+
+  let idxOffset = 0
+
+  for (let i = 0; i < cdxArray.length; i += ZIP_NUM_SHARED_INDEX_LIMIT) {
+    let nextBound = i + ZIP_NUM_SHARED_INDEX_LIMIT
+
+    if (nextBound > cdxArray.length) {
+      nextBound = cdxArray.length - 1
+    }
+
+    const cdxSlice = cdxArray.slice(i, nextBound).join('')
+
+    let cdxSliceDeflated = new Deflate({ gzip: true })
+    cdxSliceDeflated.push(cdxSlice, true)
+    cdxSliceDeflated = cdxSliceDeflated.result
+
+    const idxLineForSlice = cdxArray[i]
+    const idxLineMeta = {
+      offset: idxOffset,
+      length: cdxSliceDeflated.byteLength,
+      digest: await hash(Buffer.from(cdxSliceDeflated)),
+      filename: 'index.cdx.gz'
+    }
+
+    idxOffset += cdxSliceDeflated.byteLength
+
+    const newIdx = `${idxLineForSlice.split(' ').slice(0, 1).join(' ')} ${JSON.stringify(idxLineMeta)}\n`
+    idxArray.push(newIdx)
+
+    cdx = Buffer.concat([cdx, cdxSliceDeflated])
+  }
+
+  archive.append(cdx, { name: 'indexes/index.cdx.gz' })
+
+  packageInfo.push({
+    name: 'index.cdx.gz',
+    path: 'indexes/index.cdx.gz',
+    hash: await hash(cdx),
+    bytes: cdx.byteLength
+  })
+} catch (err) {
+  throw new Error(`An error occurred while generating indexes/index.cdx.gz.\n${err}`)
 }
-console.timeEnd('pick-idx')
+console.timeEnd('write-index-cdx-gz')
 
 //
 // Create indexes/index.idx and add it to the archive
@@ -167,32 +219,6 @@ try {
   throw new Error(`An error occurred while generating indexes/index.idx.\n${err}`)
 }
 console.timeEnd('write-index-idx')
-
-//
-// Create indexes/index.cdx.gz and add it to the archive
-//
-console.time('write-index-cdx-gz')
-try {
-  /** @type {string|Buffer} */
-  let cdx = ''
-
-  for (const entry of cdxArray) {
-    cdx += `${entry}`
-  }
-
-  cdx = gzipSync(cdx)
-  archive.append(cdx, { name: 'indexes/index.cdx.gz' })
-
-  packageInfo.push({
-    name: 'index.cdx.gz',
-    path: 'indexes/index.cdx.gz',
-    hash: await hash(cdx),
-    bytes: cdx.byteLength
-  })
-} catch (err) {
-  throw new Error(`An error occurred while generating indexes/index.cdx.gz.\n${err}`)
-}
-console.timeEnd('write-index-cdx-gz')
 
 //
 // Create pages/pages.jsonl and add it to the archive
