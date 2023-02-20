@@ -18,10 +18,12 @@
   },
   "homepage": "https://github.com/harvard-lil/js-wacz#readme",
   "dependencies": {
+    "archiver": "^5.3.1",
     "glob": "^8.1.0",
     "node-html-parser": "^6.1.4",
     "piscina": "^3.2.0",
     "sorted-btree": "^1.8.1",
+    "uuid": "^9.0.0",
     "warcio": "^2.0.1"
   },
   "devDependencies": {

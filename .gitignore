@@ -3,3 +3,4 @@ node_modules
 *.warc.gz
 *.wacz
 .DS_Store
+tmp/

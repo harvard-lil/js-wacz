@@ -1,4 +1,5 @@
 import fs from 'fs'
+import { basename } from 'path'
 import { CDXIndexer } from 'warcio'
 
 /**
@@ -12,7 +13,7 @@ export default async (filename) => {
   const stream = fs.createReadStream(filename)
   const indexer = new CDXIndexer()
 
-  for await (const record of indexer.iterIndex([{ reader: stream, filename }])) {
+  for await (const record of indexer.iterIndex([{ reader: stream, filename: basename(filename) }])) {
     cdx.push(indexer.serializeCDXJ(record))
   }
 
