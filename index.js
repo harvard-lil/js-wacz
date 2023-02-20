@@ -30,7 +30,7 @@ import { v4 as uuidv4 } from 'uuid'
  * See: https://pywb.readthedocs.io/en/latest/manual/indexing.html#zipnum-sharded-index
  * @constant
  */
-const ZIP_NUM_SHARED_INDEX_LIMIT = 1000
+const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
 
 /** @type {{url: string, title: string, ts: string}[]]} */
 const pages = []
@@ -158,6 +158,7 @@ try {
       nextBound = cdxArray.length - 1
     }
 
+    // TODO: CDX lines probably need tweaking ...
     const cdxSlice = cdxArray.slice(i, nextBound).join('')
 
     let cdxSliceDeflated = new Deflate({ gzip: true })
@@ -250,6 +251,7 @@ console.timeEnd('write-pages-jsonl')
 //
 // Add WARCs to archive
 //
+// TODO: Parallelize?
 console.time('storing-warcs')
 for (const warc of warcs) {
   const filename = basename(warc)

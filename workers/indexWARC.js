@@ -14,6 +14,10 @@ export default async (filename) => {
   const indexer = new CDXIndexer()
 
   for await (const record of indexer.iterIndex([{ reader: stream, filename: basename(filename) }])) {
+    if (record.mime === 'application/warc-fields') {
+      continue
+    }
+
     cdx.push(indexer.serializeCDXJ(record))
   }
 
