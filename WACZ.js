@@ -1,6 +1,5 @@
 import fs from 'fs/promises'
-import { constants as fsConstants } from 'node:fs'
-import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs'
+import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep } from 'path'
 
@@ -30,7 +29,16 @@ export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
 export const JS_WACZ_VERSION = '0.0.1'
 
 /**
+ * Utility class allowing for merging multiple .warc / .warc.gz files into a single .wacz file.
  *
+ * @example
+ * const archive = new WACZ({
+ *   file: "my-collection/*.warc.gz",
+ *   output: "my-collection.wacz",
+ *   title: "My awesome collection"
+ * })
+ *
+ * await archive.process()
  */
 export class WACZ {
   /** @type {Console} */
@@ -124,6 +132,9 @@ export class WACZ {
   /** @type {string[]} */
   cdxArray = []
 
+  /** @type {string[]} */
+  idxArray = []
+
   /**
    * B-Tree in which the key is an url string and the value is WACZPage.
    * Used for "sorting on the go".
@@ -153,7 +164,7 @@ export class WACZ {
   archiveStream = null
 
   /**
-   * @param {WACZOptions} options
+   * @param {WACZOptions} options - See types/WACZOptions for details.
    */
   constructor (options = {}) {
     // Although non-blocking, options.log must be processed first
@@ -374,7 +385,7 @@ export class WACZ {
     this.readyStateCheck()
 
     return await Promise.all(this.WARCs.map(async filename => {
-      const results = await this.indexWARCPool.run(filename)
+      const results = await this.indexWARCPool.run({ filename, detectPages: this.detectPages })
 
       for (const value of results.cdx) {
         this.cdxTree.setIfNotPresent(value, true)

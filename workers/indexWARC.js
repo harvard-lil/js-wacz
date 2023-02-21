@@ -1,4 +1,5 @@
-import fs from 'fs'
+import { createReadStream } from 'fs'
+import fs from 'fs/promises'
 import { basename } from 'path'
 
 import { parse as parseHTML } from 'node-html-parser'
@@ -14,18 +15,25 @@ import { v4 as uuidv4 } from 'uuid'
  *
  * Worker function.
  *
- * @param {string} filename
- * @param {boolean} [detectPages=true]
+ * @param {Object} options
+ * @param {string} options.filename
+ * @param {boolean} [options.detectPages=true]
  *
  * @returns {Promise<{cdx: string[], pages: WACZPage[]>}}
  */
-export default async (filename, detectPages = true) => {
-  fs.accessSync(filename)
+export default async (options = {}) => {
+  const filename = options?.filename
+  const detectPages = options?.detectPages !== false
+
+  if (!filename) {
+    throw new Error('No filename provided.')
+  }
+
+  await fs.access(filename)
 
   const cdx = []
   const pages = []
-
-  const stream = fs.createReadStream(filename)
+  const stream = createReadStream(filename)
   const parser = new WARCParser(stream)
   const indexer = new CDXIndexer()
 
@@ -59,8 +67,7 @@ export default async (filename, detectPages = true) => {
       const targetURI = record.warcHeader('WARC-Target-URI')
       const warcDate = record.warcHeader('WARC-Date')
 
-      // Eligible candidates:
-      // - text/html response with success status code, target URI and date
+      // Eligible candidates: text/html response with success status code, target URI and date
       if (
         warcType !== 'response' ||
         statusCode > 299 ||
