@@ -1,0 +1,33 @@
+{
+  "name": "js-wacz",
+  "version": "0.0.1",
+  "description": "JavaScript module and CLI tool for working with web archive data using the WACZ format specification.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harvard-lil/js-wacz.git"
+  },
+  "author": "Harvard Library Innovation Lab",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/harvard-lil/js-wacz/issues"
+  },
+  "homepage": "https://github.com/harvard-lil/js-wacz#readme",
+  "dependencies": {
+    "archiver": "^5.3.1",
+    "glob": "^8.1.0",
+    "node-html-parser": "^6.1.4",
+    "pako": "^2.1.0",
+    "piscina": "^3.2.0",
+    "sorted-btree": "^1.8.1",
+    "uuid": "^9.0.0",
+    "warcio": "^2.0.1"
+  },
+  "devDependencies": {
+    "standard": "^17.0.0"
+  }
+}
