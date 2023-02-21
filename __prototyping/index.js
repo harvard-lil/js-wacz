@@ -63,7 +63,7 @@ const archive = new Archiver('zip', { store: true })
 archive.pipe(outputStream)
 
 /**
- * Inspired by: https://stackoverflow.com/a/18658613
+ * Inspired by answers on: https://stackoverflow.com/q/18658612
  * @param {Buffer|string} filenameOrBuffer
  * @returns {string} 'sha256:<hash>'
  */

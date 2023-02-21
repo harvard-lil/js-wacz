@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import { constants as fsConstants } from 'node:fs'
-import { createWriteStream, createReadStream, WriteStream, accessSync, unlinkSync } from 'fs'
+import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs'
 import { createHash } from 'crypto'
 import { basename, sep } from 'path'
 
@@ -27,6 +27,18 @@ export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
 export class WACZ {
   /** @type {Console} */
   log = console
+
+  /**
+   * If `true`, enough information was provided for processing to go on.
+   * @type {boolean}
+   */
+  ready = false
+
+  /**
+   * Worker pool for the `indexWARC` function.
+   * @type {?Piscina}
+   */
+  indexWARCPool = null
 
   /**
    * From WACZOptions.file.
@@ -133,7 +145,7 @@ export class WACZ {
    * @param {WACZOptions} options
    */
   constructor (options = {}) {
-    // options.log
+    // Although non-blocking, options.log must be processed first
     if (options?.log) {
       this.log = options.log
 
@@ -148,6 +160,10 @@ export class WACZ {
 
     this.filterBlockingOptions(options)
     this.filterNonBlockingOptions(options)
+    this.ready = true
+
+    this.initOutputStreams()
+    this.initWorkerPool()
   }
 
   /**
@@ -201,10 +217,6 @@ export class WACZ {
       try {
         unlinkSync(this.output) // [!] We can't use async version here (constructor)
       } catch (_err) { }
-
-      // Create output streams
-      this.outputStream = createWriteStream(this.output)
-      this.archiveStream = new Archiver('zip', { store: true })
     } catch (err) {
       log.trace(err)
       throw new Error('"output" must be a valid "*.wacz" path on which the program can write.')
@@ -227,7 +239,7 @@ export class WACZ {
         const url = new URL(options.url).href // will throw if invalid
         this.url = url
       } catch (_err) {
-        this.log.warn('"url" provided is invalid. Skipping.')
+        log.warn('"url" provided is invalid. Skipping.')
       }
     }
 
@@ -236,7 +248,7 @@ export class WACZ {
         const ts = new Date(options.ts).toISOString // will throw if invalid
         this.ts = ts
       } catch (_err) {
-        this.log.warn('"ts" provided is invalid. Skipping.')
+        log.warn('"ts" provided is invalid. Skipping.')
       }
     }
 
@@ -253,7 +265,7 @@ export class WACZ {
         const signingUrl = new URL(options.signingUrl).href // will throw if invalid
         this.signingUrl = signingUrl
       } catch (_err) {
-        this.log.warn('"signingUrl" provided is not a valid url. Skipping.')
+        log.warn('"signingUrl" provided is not a valid url. Skipping.')
       }
     }
 
@@ -266,8 +278,87 @@ export class WACZ {
         const datapackageExtras = JSON.stringify(options.datapackageExtras) // will throw if invalid
         this.datapackageExtras = datapackageExtras
       } catch (_err) {
-        this.log.warn('"datapackageExtras" provided is not JSON-serializable object. Skipping.')
+        log.warn('"datapackageExtras" provided is not JSON-serializable object. Skipping.')
       }
     }
+  }
+
+  /**
+   * Checks if `this.ready` is true, throws otherwise.
+   * @throws
+   * @returns {void}
+   */
+  readyStateCheck = () => {
+    if (this.ready !== true) {
+      throw new Error('Not enough information was provided for processing to start.')
+    }
+  }
+
+  /**
+   * Creates an Archiver instance which streams out to `this.output`.
+   * @returns {void}
+   */
+  initOutputStreams = () => {
+    this.readyStateCheck()
+
+    this.outputStream = createWriteStream(this.output)
+    this.archiveStream = new Archiver('zip', { store: true })
+    this.archiveStream.pipe(this.outputStream)
+  }
+
+  /**
+   * Initializes the worker pool for the "indexWARC" function.
+   * @returns {void}
+   */
+  initWorkerPool = () => {
+    this.readyStateCheck()
+
+    this.indexWARCPool = new Piscina({
+      filename: new URL('./workers/indexWARC.js', import.meta.url).href
+    })
+  }
+
+  /**
+   * Computes the SHA256 hash of a given file or chunk of data.
+   *
+   * @throws
+   * @param {string|Uint8Array} file - Path to a file OR Buffer / Uint8Array.
+   * @returns {Promise<string>} - "sha256:<digest>"
+   */
+  sha256 = async (file) => {
+    // If buffer was given: directly process it.
+    if (file instanceof Uint8Array) {
+      return 'sha256:' + createHash('sha256').update(file).digest('hex')
+    }
+
+    // If filename was given: stream file into hash function.
+    // Inspired by answers on: https://stackoverflow.com/q/18658612
+    try {
+      await fs.access(file)
+    } catch (err) {
+      this.log.trace(err)
+      throw new Error(`${file} cannot be read.`)
+    }
+
+    const stream = createReadStream(file)
+    const hash = createHash('sha256')
+    let digest = ''
+
+    hash.setEncoding('hex')
+
+    await new Promise((resolve, reject) => {
+      stream.on('error', err => reject(err))
+      stream.on('data', chunk => hash.update(chunk))
+
+      stream.on('end', () => {
+        hash.end()
+        digest = hash.read()
+        resolve()
+      })
+
+      stream.pipe(hash)
+    })
+
+    return `sha256:${digest}`
   }
 }
