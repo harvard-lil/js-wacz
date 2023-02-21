@@ -133,9 +133,7 @@ export class WACZ {
    * @param {WACZOptions} options
    */
   constructor (options = {}) {
-    //
     // options.log
-    //
     if (options?.log) {
       this.log = options.log
 
@@ -148,9 +146,19 @@ export class WACZ {
       }
     }
 
-    //
-    // options.file (+ populate this.WARCs)
-    //
+    this.filterBlockingOptions(options)
+    this.filterNonBlockingOptions(options)
+  }
+
+  /**
+   * Processes "blocking" options, which can't be skipped.
+   * @throws
+   * @param {WACZOptions} options
+   */
+  filterBlockingOptions = (options) => {
+    const log = this.log
+
+    // options.file
     try {
       if (!options?.file) {
         throw new Error('`file` was not provided.')
@@ -174,16 +182,11 @@ export class WACZ {
         throw new Error('No WARC found.')
       }
     } catch (err) {
-      this.log.trace(err)
+      log.trace(err)
       throw new Error('"file" must be a valid path leading to at least 1 .warc or .warc.gz file.')
     }
 
-    //
     // options.output
-    // (+ creates `this.outputStream`)
-    // (+ instantiates `this.archiveStream`)
-    // (+ deletes existing file if any)
-    //
     try {
       this.output = options?.output
         ? String(options.output).trim()
@@ -203,13 +206,18 @@ export class WACZ {
       this.outputStream = createWriteStream(this.output)
       this.archiveStream = new Archiver('zip', { store: true })
     } catch (err) {
-      this.log.trace(err)
+      log.trace(err)
       throw new Error('"output" must be a valid "*.wacz" path on which the program can write.')
     }
+  }
 
-    //
-    // Non-blocking options
-    //
+  /**
+   * Processes "non-blocking" options for which we automatically switch to defaults or skip.
+   * @param {WACZOptions} options
+   */
+  filterNonBlockingOptions = (options) => {
+    const log = this.log
+
     if (options?.detectPages === false) {
       this.detectPages = false
     }
@@ -249,7 +257,7 @@ export class WACZ {
       }
     }
 
-    if (this.signingUrl && options?.signingToken) {
+    if (options?.signingToken && this.signingUrl) {
       this.signingToken = String(options.signingToken)
     }
 
@@ -261,7 +269,5 @@ export class WACZ {
         this.log.warn('"datapackageExtras" provided is not JSON-serializable object. Skipping.')
       }
     }
-
-    console.log(this)
   }
 }
