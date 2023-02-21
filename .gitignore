@@ -4,3 +4,4 @@ node_modules
 *.wacz
 .DS_Store
 tmp/
+tmp.js
