@@ -2,8 +2,7 @@
 // Quick test / sketching things out / ignore this mess
 //
 // TODO: Many things :) but basic proof of concept is ok.
-// - index-warcs and detect-pages steps can probably be merged
-// - Extra: provide collection title and description?
+// - Extra: provide collection title and description
 // - Extra: signature
 // - Extra: accept external pages.jsonl if provided (and per-page API)
 // - Extra: support for adding extra data in datapackage.json
@@ -19,7 +18,6 @@ import glob from 'glob'
 import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
 import Archiver from 'archiver'
-import { v4 as uuidv4 } from 'uuid'
 
 console.time('total')
 
@@ -32,8 +30,7 @@ console.time('total')
  */
 const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
 
-/** @type {{url: string, title: string, ts: string}[]]} */
-const pages = []
+const pagesTree = new BTree.default() // eslint-disable-line
 
 /** @type {BTree} */
 const cdxTree = new BTree.default() // eslint-disable-line
@@ -112,26 +109,15 @@ const indexWARCPool = new Piscina({
 await Promise.all(warcs.map(async filename => {
   const results = await indexWARCPool.run(filename)
 
-  for (const value of results) {
+  for (const value of results.cdx) {
     cdxTree.setIfNotPresent(value, true)
+  }
+
+  for (const value of results.pages) {
+    pagesTree.setIfNotPresent(value.url, value)
   }
 }))
 console.timeEnd('index-warcs')
-
-//
-// Detect pages in WARCs
-// (Only if --detect-pages)? Or if no pages.jsonl provided.
-//
-console.time('detect-pages')
-const detectPagesPool = new Piscina({
-  filename: new URL('./workers/detectPages.js', import.meta.url).href
-})
-
-await Promise.all(warcs.map(async filename => {
-  const results = await detectPagesPool.run(filename)
-  pages.push(...results)
-}))
-console.timeEnd('detect-pages')
 
 //
 // Extract sorted CDX
@@ -229,8 +215,8 @@ try {
   /** @type {string|Buffer} */
   let pagesJSONL = '{"format": "json-pages-1.0", "id": "pages", "title": "All Pages"}\n'
 
-  for (const page of pages) {
-    pagesJSONL += `${JSON.stringify({ id: uuidv4().replaceAll('-', ''), ...page })}\n`
+  for (const page of pagesTree.values()) {
+    pagesJSONL += `${JSON.stringify(page)}\n`
   }
 
   archive.append(pagesJSONL, { name: 'pages/pages.jsonl' })
