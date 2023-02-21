@@ -230,7 +230,7 @@ try {
     bytes: pagesJSONL.byteLength
   })
 } catch (err) {
-  throw new Error(`An error occured while generating pages/pages.jsonl.\n${err}`)
+  throw new Error(`An error occurred while generating pages/pages.jsonl.\n${err}`)
 }
 console.timeEnd('write-pages-jsonl')
 

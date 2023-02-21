@@ -9,6 +9,7 @@ import glob from 'glob'
 import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
 import Archiver from 'archiver'
+import { v4 as uuidv4 } from 'uuid'
 
 /// <reference path="types.js" />
 
@@ -20,6 +21,13 @@ import Archiver from 'archiver'
  * @type {number}
  */
 export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
+
+/**
+ * Current version of js-wacz
+ * @constant
+ * @type {string}
+ */
+export const JS_WACZ_VERSION = '0.0.1'
 
 /**
  *
@@ -96,9 +104,9 @@ export class WACZ {
 
   /**
    * From WACZOptions.datapackageExtras. Stringified.
-   * @type {?string}
+   * @type {?object}
    */
-  datapackageExtras = {}
+  datapackageExtras = null
 
   /**
    * List of files detected from path provided in `file`.
@@ -126,8 +134,11 @@ export class WACZ {
   /** @type {WACZPage[]} */
   pagesArray = []
 
-  /** @type {WACZDatapackageResource[]} */
-  filesInfo = []
+  /**
+   * All files added to the zip, with the exception of datapackage-digest.json, need to be referenced here.
+   * @type {WACZDatapackageResource[]}
+   */
+  resources = []
 
   /**
    * Stream to output file. To be used by `this.archive`.
@@ -168,8 +179,8 @@ export class WACZ {
 
   /**
    * Processes "blocking" options, which can't be skipped.
-   * @throws
    * @param {WACZOptions} options
+   * @returns {void}
    */
   filterBlockingOptions = (options) => {
     const log = this.log
@@ -275,8 +286,8 @@ export class WACZ {
 
     if (options?.datapackageExtras) {
       try {
-        const datapackageExtras = JSON.stringify(options.datapackageExtras) // will throw if invalid
-        this.datapackageExtras = datapackageExtras
+        JSON.stringify(options.datapackageExtras)// will throw if invalid
+        this.datapackageExtras = options.datapackageExtras
       } catch (_err) {
         log.warn('"datapackageExtras" provided is not JSON-serializable object. Skipping.')
       }
@@ -284,8 +295,43 @@ export class WACZ {
   }
 
   /**
+   * Convenience method: runs all the processing steps from start to finish.
+   * @returns {Promise<void>}
+   */
+  process = async (verbose = true) => {
+    this.readyStateCheck()
+
+    const info = verbose ? this.log.info : () => {}
+
+    info('Indexing WARCS.')
+    await this.indexWARCs()
+
+    info('Harvesting sorted indexes from trees.')
+    this.harvestArraysFromTrees()
+
+    info('Writing CDX to ZIP.')
+    await this.writeIndexesToZip()
+
+    info('Writing pages.jsonl to ZIP.')
+    await this.writePagesToZip()
+
+    info('Writing WARCs to ZIP.')
+    await this.writeWARCsToZip()
+
+    info('Writing datapackage.json to ZIP.')
+    await this.writeDatapackageToZip()
+
+    info('Writing datapackage-digest.json to ZIP.')
+    await this.writeDatapackageDigestToZip()
+
+    info('Finalizing ZIP.')
+    this.finalize()
+
+    info('Done.')
+  }
+
+  /**
    * Checks if `this.ready` is true, throws otherwise.
-   * @throws
    * @returns {void}
    */
   readyStateCheck = () => {
@@ -319,9 +365,324 @@ export class WACZ {
   }
 
   /**
-   * Computes the SHA256 hash of a given file or chunk of data.
+   * Calls the 'indexWARC` worker on each entry of `this.WARCs` for parallel processing.
+   * Populates `this.cdxTree` and `this.pagesTree`.
    *
-   * @throws
+   * @returns {Promise<void>} - From Promise.all.
+   */
+  indexWARCs = async () => {
+    this.readyStateCheck()
+
+    return await Promise.all(this.WARCs.map(async filename => {
+      const results = await this.indexWARCPool.run(filename)
+
+      for (const value of results.cdx) {
+        this.cdxTree.setIfNotPresent(value, true)
+      }
+
+      for (const value of results.pages) {
+        this.pagesTree.setIfNotPresent(value.url, value)
+      }
+    }))
+  }
+
+  /**
+   * Extract sorted CDX and pages list and clears up associated trees.
+   * @returns {void}
+   */
+  harvestArraysFromTrees = () => {
+    this.readyStateCheck()
+
+    this.cdxArray = this.cdxTree.keysArray()
+    this.cdxTree.clear()
+
+    this.pagesArray = this.pagesTree.valuesArray()
+    this.pagesTree.clear()
+  }
+
+  /**
+   * Creates `index.cdx.gz` and `index.idx` out of `this.cdxArray` and writes them to ZIP.
+   * @returns {Promise<void>}
+   */
+  writeIndexesToZip = async () => {
+    this.readyStateCheck()
+
+    const { cdxArray, idxArray, archiveStream, resources, log } = this
+
+    let cdx = Buffer.alloc(0)
+    let idxOffset = 0 // Used to for IDX metadata (IDX / CDX cross reference)
+
+    // index.cdx.gz
+    try {
+      // Process CDX entries by group of ZIP_NUM_SHARED_INDEX_LIMIT for ZipNum Shared Indexing.
+      for (let i = 0; i < cdxArray.length; i += ZIP_NUM_SHARED_INDEX_LIMIT) {
+        let upperBound = null
+        let cdxSlice = null
+        let cdxSliceGzipped = null
+        let idxForSlice = null
+        let idxMeta = {}
+
+        // Cut a slice in cdxArray of ZIP_NUM_SHARED_INDEX_LIMIT length
+        upperBound = i + ZIP_NUM_SHARED_INDEX_LIMIT
+
+        if (upperBound > cdxArray.length) {
+          upperBound = cdxArray.length - 1
+        }
+
+        cdxSlice = cdxArray.slice(i, upperBound).join('')
+
+        // Deflate said slice
+        cdxSliceGzipped = this.gzip(cdxSlice)
+
+        // Prepare and append the first line of this slice to `this.idxArray`
+        idxForSlice = cdxArray[i]
+        idxMeta = {
+          offset: idxOffset,
+          length: cdxSliceGzipped.byteLength,
+          digest: await this.sha256(cdxSliceGzipped),
+          filename: 'index.cdx.gz'
+        } // The JSON part of this CDX line needs to be edited to reference the CDX file
+
+        idxOffset += cdxSliceGzipped.byteLength
+
+        // CDXJ elements are separated " ". We only need to replace the last and third (JSON)
+        idxArray.push(`${idxForSlice.split(' ').slice(0, 1).join(' ')} ${JSON.stringify(idxMeta)}\n`)
+
+        // Append gzipped CDX slice to the rest
+        cdx = Buffer.concat([cdx, cdxSliceGzipped])
+      }
+
+      // Write index.cdx.gz to ZIP and record datapackage info
+      archiveStream.append(cdx, { name: 'indexes/index.cdx.gz' })
+
+      resources.push({
+        name: 'index.cdx.gz',
+        path: 'indexes/index.cdx.gz',
+        hash: await this.sha256(cdx),
+        bytes: cdx.byteLength
+      })
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while generating "indexes/index.cdx.gz".')
+    }
+
+    // index.idx
+    try {
+      // Write index.idx to ZIP and record datapackage info
+      let idx = '!meta 0 {"format": "cdxj-gzip-1.0", "filename": "index.cdx.gz"}\n'
+
+      for (const entry of idxArray) {
+        idx += `${entry}`
+      }
+
+      archiveStream.append(idx, { name: 'indexes/index.idx' })
+
+      resources.push({
+        name: 'index.idx',
+        path: 'indexes/index.idx',
+        hash: await this.sha256(Buffer.from(idx)),
+        bytes: idx.byteLength
+      })
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while generating "indexes/index.idx".')
+    }
+  }
+
+  /**
+   * Creates `pages.jsonl` out of `this.pagesArray` and writes it to ZIP.
+   * @returns {Promise<void>}
+   */
+  writePagesToZip = async () => {
+    this.readyStateCheck()
+
+    const { pagesArray, archiveStream, resources, log } = this
+
+    try {
+      let pagesJSONL = '{"format": "json-pages-1.0", "id": "pages", "title": "All Pages"}\n'
+
+      for (const page of pagesArray) {
+        pagesJSONL += `${JSON.stringify(page)}\n`
+      }
+
+      archiveStream.append(pagesJSONL, { name: 'pages/pages.jsonl' })
+
+      resources.push({
+        name: 'pages.jsonl',
+        path: 'pages/pages.jsonl',
+        hash: await this.sha256(Buffer.from(pagesJSONL)),
+        bytes: pagesJSONL.byteLength
+      })
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while generating "pages/pages.jsonl".')
+    }
+  }
+
+  /**
+   * Streams all the files listes in `this.WARCs` to the output ZIP.
+   * @returns {Promise<void>}
+   */
+  writeWARCsToZip = async () => {
+    this.readyStateCheck()
+
+    const { WARCs, archiveStream, resources, log } = this
+
+    for (const warc of WARCs) {
+      try {
+        const filename = basename(warc)
+        const stream = createReadStream(warc)
+        archiveStream.append(stream, { name: `archive/${filename}` })
+
+        resources.push({
+          name: filename,
+          path: `archive/${filename}`,
+          hash: await this.sha256(warc),
+          bytes: (await fs.stat(warc)).size
+        })
+      } catch (err) {
+        log.trace(err)
+        throw new Error(`An error occurred while writing "${warc}" to ZIP.`)
+      }
+    }
+  }
+
+  /**
+   * Creates `datapackage.json` out of `this.resources` and writes it to ZIP.
+   * @returns {Promise<void>}
+   */
+  writeDatapackageToZip = async () => {
+    this.readyStateCheck()
+
+    const { archiveStream, resources, log } = this
+
+    try {
+      const datapackage = {
+        created: new Date().toISOString(),
+        wacz_version: '1.1.1',
+        software: JS_WACZ_VERSION,
+        resources
+      }
+
+      datapackage.title = this.title || 'WACZ'
+      datapackage.description = this.description || ''
+
+      if (this.url) {
+        datapackage.mainPageUrl = this.url
+      }
+
+      if (this.ts) {
+        datapackage.mainPageDate = this.ts
+      }
+
+      if (this.datapackageExtras) {
+        datapackage.extras = this.datapackageExtras
+      }
+
+      const serializedDatapackage = JSON.stringify(datapackage, null, 2)
+      const binaryDatapackage = Buffer.from(serializedDatapackage)
+
+      archiveStream.append(serializedDatapackage, { name: 'datapackage.json' })
+
+      resources.push({
+        name: 'datapackage.json',
+        path: 'datapackage.json',
+        hash: await this.sha256(binaryDatapackage),
+        bytes: binaryDatapackage.byteLength
+      })
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while generating "datapackage.json".')
+    }
+  }
+
+  /**
+   * Creates `datapackage-digest.json` and writes it to ZIP.
+   * @returns {Promise<void>}
+   */
+  writeDatapackageDigestToZip = async () => {
+    this.readyStateCheck()
+
+    const { archiveStream, resources, log } = this
+
+    // TODO: Add support for signing
+    try {
+      const digest = {
+        path: 'datapackage.json',
+        hash: (resources.find(entry => entry.name === 'datapackage.json')).hash
+      }
+
+      const datapackageDigest = JSON.stringify(digest, null, 2)
+
+      archiveStream.append(datapackageDigest, { name: 'datapackage-digest.json' })
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while generating "datapackage-digest.json".')
+    }
+  }
+
+  /**
+   * Finalizes ZIP file
+   * @returns {void}
+   */
+  finalize = () => {
+    this.readyStateCheck()
+    this.archiveStream.finalize()
+  }
+
+  /**
+   * Allows to manually add an entry for pages.jsonl.
+   * Entries will be added to `this.pagesTree`.
+   * Calling this method automatically turns pages detection off.
+   * @param {string} url - Must be a valid url
+   * @param {?string} title
+   * @param {?string} ts - Must be parsable by Date().
+   * @returns {WACZPage}
+   */
+  addPage = (url, title = null, ts = null) => {
+    this.readyStateCheck()
+    this.detectPages = false
+
+    /** @type {WACZPage} */
+    const page = { id: uuidv4().replaceAll('-', '') }
+
+    try {
+      new URL(url) // eslint-disable-line
+      page.url = url
+    } catch (_err) {
+      throw new Error('"url" must be a valid url.')
+    }
+
+    if (title) {
+      title = String(title).trim(0)
+      page.title = title
+    }
+
+    if (ts) {
+      try {
+        ts = new Date(ts).toISOString()
+        page.ts = ts
+      } catch (err) {
+        throw new Error('If provided, "ts" must be parsable by JavaScript\'s Date class.')
+      }
+    }
+
+    this.pagesTree.setIfNotPresent(page.url, page)
+  }
+
+  /**
+   * Utility for gzipping data chunks.
+   * @param {Uint8Array} chunk
+   * @returns {Uint8Array}
+   */
+  gzip = (chunk) => {
+    const output = new Deflate({ gzip: true })
+    output.push(chunk, true)
+    return output.result
+  }
+
+  /**
+   * Computes the SHA256 hash of a given file or chunk of data.
    * @param {string|Uint8Array} file - Path to a file OR Buffer / Uint8Array.
    * @returns {Promise<string>} - "sha256:<digest>"
    */
