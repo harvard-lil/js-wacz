@@ -4,7 +4,9 @@
   "description": "JavaScript module and CLI tool for working with web archive data using the WACZ format specification.",
   "main": "index.js",
   "type": "module",
+  "bin": "./cli.js",
   "scripts": {
+    "js-wacz": "node cli.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +21,7 @@
   "homepage": "https://github.com/harvard-lil/js-wacz#readme",
   "dependencies": {
     "archiver": "^5.3.1",
+    "commander": "^10.0.0",
     "glob": "^8.1.0",
     "node-html-parser": "^6.1.4",
     "pako": "^2.1.0",

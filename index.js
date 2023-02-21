@@ -10,6 +10,8 @@ import { Piscina } from 'piscina'
 import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
+import { assertValidWACZSignatureFormat } from './utils/assertions.js'
+
 /// <reference path="types.js" />
 
 /**
@@ -22,23 +24,18 @@ import { v4 as uuidv4 } from 'uuid'
 export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
 
 /**
- * Current version of js-wacz
- * @constant
- * @type {string}
- */
-export const JS_WACZ_VERSION = '0.0.1'
-
-/**
  * Utility class allowing for merging multiple .warc / .warc.gz files into a single .wacz file.
  *
- * @example
+ * Usage:
+ * ```javascript
  * const archive = new WACZ({
- *   file: "my-collection/*.warc.gz",
- *   output: "my-collection.wacz",
+ *   file: 'my-collection/*.warc.gz',
+ *   output: 'my-collection.wacz',
  *   title: "My awesome collection"
  * })
  *
  * await archive.process()
+ * ```
  */
 export class WACZ {
   /** @type {Console} */
@@ -109,6 +106,12 @@ export class WACZ {
    * @type {?string}
    */
   signingToken = null
+
+  /**
+   * Date at which datapackage.json was generated. Needed for signing.
+   * @type {?string}
+   */
+  datapackageDate = null
 
   /**
    * From WACZOptions.datapackageExtras. Stringified.
@@ -567,11 +570,13 @@ export class WACZ {
 
     const { archiveStream, resources, log } = this
 
+    this.datapackageDate = new Date().toISOString()
+
     try {
       const datapackage = {
-        created: new Date().toISOString(),
+        created: this.datapackageDate,
         wacz_version: '1.1.1',
-        software: JS_WACZ_VERSION,
+        software: 'js-wacz',
         resources
       }
 
@@ -614,13 +619,25 @@ export class WACZ {
   writeDatapackageDigestToZip = async () => {
     this.readyStateCheck()
 
-    const { archiveStream, resources, log } = this
+    const { archiveStream, resources, log, datapackageDate, signingUrl, signingToken } = this
 
-    // TODO: Add support for signing
     try {
+      const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
+
       const digest = {
         path: 'datapackage.json',
-        hash: (resources.find(entry => entry.name === 'datapackage.json')).hash
+        hash: datapackageHash
+      }
+
+      // Request signing from server if needed
+      if (signingUrl) {
+        try {
+          const signature = await this.requestSignature()
+          digest.signedData = signature
+        } catch (err) {
+          log.trace(err)
+          throw new Error('An error occured while signing "datapackage.json".')
+        }
       }
 
       const datapackageDigest = JSON.stringify(digest, null, 2)
@@ -630,6 +647,62 @@ export class WACZ {
       log.trace(err)
       throw new Error('An error occurred while generating "datapackage-digest.json".')
     }
+  }
+
+  /**
+   * Request signature for the current datapackage and checks its format.
+   * @returns {Promise<object>} - Signature to data to be appended to the datapackage digest.
+   */
+  requestSignature = async () => {
+    this.readyStateCheck()
+
+    const { resources, log, datapackageDate, signingUrl, signingToken } = this
+    const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
+
+    // Throw early if datapackage is not ready.
+    if (!datapackageDate || !datapackageHash) {
+      throw new Error('No datapackage to sign.')
+    }
+
+    /** @type {?Response} */
+    let response = null
+
+    /** @type {object} */
+    let json = null
+
+    // Request signature
+    try {
+      const body = JSON.stringify({
+        hash: datapackageHash,
+        created: datapackageDate
+      })
+
+      const headers = { 'Content-Type': 'application/json' }
+
+      if (signingToken) {
+        headers.Authorization = signingToken
+      }
+
+      response = await fetch(signingUrl, { method: 'POST', headers, body })
+
+      if (response?.status !== 200) {
+        throw new Error(`Server responded with HTTP ${response.status}.`)
+      }
+    } catch (err) {
+      log.trace(err)
+      throw new Error('WACZ Signature request failed.')
+    }
+
+    // Check signature format
+    try {
+      json = await response.json()
+      assertValidWACZSignatureFormat(json)
+    } catch (err) {
+      log.trace(err)
+      throw new Error('Server returned an invalid WACZ signature.')
+    }
+
+    return json
   }
 
   /**
