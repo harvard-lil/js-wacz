@@ -23,6 +23,8 @@ import { Piscina } from 'piscina'
 import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
+console.time('total')
+
 /**
  * When building a ZipNum Shared index (index.idx as a lookup table for index.cdx.gz):
  * How many index lines should be grouped together?
@@ -48,8 +50,8 @@ const idxArray = []
 const packageInfo = []
 
 /** @type {string[]} */
-// const warcs = glob.sync('tmp/adapt-warcs/*.warc')
-const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
+const warcs = glob.sync('tmp/adapt-warcs/*.warc')
+// const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
 
 // Clear existing test file
 try {
@@ -251,7 +253,6 @@ console.timeEnd('write-pages-jsonl')
 //
 // Add WARCs to archive
 //
-// TODO: Parallelize?
 console.time('storing-warcs')
 for (const warc of warcs) {
   const filename = basename(warc)
@@ -317,3 +318,5 @@ console.timeEnd('write-datapackage-digest-json')
 // Finalizing archive
 //
 archive.finalize()
+
+console.timeEnd('total')
