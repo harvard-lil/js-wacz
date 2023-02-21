@@ -2,13 +2,11 @@
 // Quick test / sketching things out / ignore this mess
 //
 // TODO: Many things :) but basic proof of concept is ok.
-// - GZipped CDX management:
-//   - https://pywb.readthedocs.io/en/latest/manual/indexing.html#zipnum-sharded-index
-//   - https://github.com/ikreymer/webarchive-indexing/blob/master/zipnumclusterjob.py
-//   - https://github.com/webrecorder/awp-sw/blob/a4238955d9e61ee648dee736bc64ac99669dbc2b/src/downloader.js#L429
+// - index-warcs and detect-pages steps can probably be merged
 // - Extra: provide collection title and description?
 // - Extra: signature
-// - Extra: accept external pages.jsonl if provided
+// - Extra: accept external pages.jsonl if provided (and per-page API)
+// - Extra: support for adding extra data in datapackage.json
 // - Think through proper architecture beyond this quick test
 
 import fs from 'fs/promises'
@@ -50,8 +48,8 @@ const idxArray = []
 const packageInfo = []
 
 /** @type {string[]} */
-const warcs = glob.sync('tmp/adapt-warcs/*.warc')
-// const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
+// const warcs = glob.sync('tmp/adapt-warcs/*.warc')
+const warcs = glob.sync('tmp/archive-it-warcs/*.warc.gz')
 
 // Clear existing test file
 try {
