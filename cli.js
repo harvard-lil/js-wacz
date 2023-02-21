@@ -115,7 +115,7 @@ program.command('create')
     }
 
     //
-    // Process pages.jsonl file if provided
+    // Digest user-provided pages.jsonl file, if any.
     //
     if (values?.pages) {
       try {
@@ -139,7 +139,7 @@ program.command('create')
     }
 
     //
-    // Process
+    // Main process
     //
     try {
       await archive.process()
