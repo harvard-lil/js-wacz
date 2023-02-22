@@ -6,24 +6,10 @@ import * as readline from 'node:readline/promises'
 
 import log from 'loglevel'
 import logPrefix from 'loglevel-plugin-prefix'
-import chalk from 'chalk'
 import { Command } from 'commander'
 
 import { WACZ } from './index.js'
-import { packageInfo } from './utils/packageInfo.js'
-
-/**
- * Colors scheme for log level.
- * @constant
- */
-const LOGGING_COLORS = {
-  DEFAULT: chalk.gray,
-  TRACE: chalk.magenta,
-  DEBUG: chalk.cyan,
-  INFO: chalk.blue,
-  WARN: chalk.yellow,
-  ERROR: chalk.red
-}
+import { PACKAGE_INFO, LOGGING_COLORS } from './constants'
 
 const program = new Command()
 
@@ -32,9 +18,9 @@ const program = new Command()
  * @type {Command}
  */
 program
-  .name(packageInfo.name)
-  .description(packageInfo.description)
-  .version(packageInfo.version)
+  .name(PACKAGE_INFO.name)
+  .description(PACKAGE_INFO.description)
+  .version(PACKAGE_INFO.version)
 
 /**
  * `create` command

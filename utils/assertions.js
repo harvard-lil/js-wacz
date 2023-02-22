@@ -1,4 +1,4 @@
-// Originally written by @leppert for @harvard-lil/scoop
+// Originally written by @leppert for @harvard-lil/scoop, modified for the needs of js-wacz
 import { X509Certificate } from 'crypto'
 
 /**
@@ -95,10 +95,10 @@ export const assertDomainName = makeAssertion(
  * Asserts that the given data conforms to the WACZ signature data format spec.
  *
  * See: https://specs.webrecorder.net/wacz-auth/0.1.0/#signature-data-format
- * @param {Object} json - a JSON object returned from a signing server
+ * @param {Object} signedData - a JSON object returned from a signing server
  * @returns {void}
  */
-export const assertValidWACZSignatureFormat = (json) => {
+export const assertValidWACZSignatureFormat = (signedData) => {
   const generalProps = {
     hash: assertSHA256WithPrefix,
     created: assertISO8601Date,
@@ -119,15 +119,15 @@ export const assertValidWACZSignatureFormat = (json) => {
 
   const propsToValidate = {
     ...generalProps,
-    ...(json.publicKey ? anonSigProps : domainIdentProps)
+    ...(signedData.publicKey ? anonSigProps : domainIdentProps)
   }
 
   // crossSignedCert is optional
-  if (json.crossSignedCert) {
+  if (signedData.crossSignedCert) {
     propsToValidate.crossSignedCert = assertPEMCertificateChain
   }
 
   for (const [key, assert] of Object.entries(propsToValidate)) {
-    assert(json[key], `'${key}' key of signature server response is invalid due to the following error:`)
+    assert(signedData[key], `'${key}' key of signature server response is invalid due to the following error:`)
   }
 }

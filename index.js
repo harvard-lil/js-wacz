@@ -13,7 +13,7 @@ import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
 import { assertValidWACZSignatureFormat } from './utils/assertions.js'
-import { packageInfo } from './utils/packageInfo.js'
+import { PACKAGE_INFO } from '../constants.js'
 
 /**
  * IDX to CDX ratio for ZipNum Shared Index.
@@ -576,7 +576,7 @@ export class WACZ {
       const datapackage = {
         created: this.datapackageDate,
         wacz_version: '1.1.1',
-        software: `${packageInfo.name} ${packageInfo.version}`,
+        software: `${PACKAGE_INFO.name} ${PACKAGE_INFO.version}`,
         resources
       }
 
@@ -669,7 +669,7 @@ export class WACZ {
     let response = null
 
     /** @type {object} */
-    let json = null
+    let signedData = null
 
     // Request signature
     try {
@@ -694,10 +694,10 @@ export class WACZ {
       throw new Error('WACZ Signature request failed.')
     }
 
-    // Check signature format
+    // Check signature data
     try {
-      json = await response.json()
-      assertValidWACZSignatureFormat(json)
+      signedData = await response.json()
+      assertValidWACZSignatureFormat(signedData)
     } catch (err) {
       log.trace(err)
       throw new Error('Server returned an invalid WACZ signature.')
