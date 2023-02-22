@@ -1,3 +1,5 @@
+/// <reference path="../types.js" />
+
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { basename } from 'path'
@@ -5,8 +7,6 @@ import { basename } from 'path'
 import { parse as parseHTML } from 'node-html-parser'
 import { WARCParser, CDXIndexer } from 'warcio'
 import { v4 as uuidv4 } from 'uuid'
-
-/// <reference path="../types.js" />
 
 /**
  * Iterates over a .warc or .warc.gz file and:

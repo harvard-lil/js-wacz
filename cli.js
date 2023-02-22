@@ -1,7 +1,6 @@
 /**
  * CLI entry point for js-wacz
  */
-import fs from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'node:readline/promises'
 
@@ -11,12 +10,7 @@ import chalk from 'chalk'
 import { Command } from 'commander'
 
 import { WACZ } from './index.js'
-
-/**
- * Infos from package.json
- * @type {Object}
- */
-const packageInfo = JSON.parse(await fs.readFile('package.json'))
+import { packageInfo } from './utils/packageInfo.js'
 
 /**
  * Colors scheme for log level.
@@ -35,6 +29,7 @@ const program = new Command()
 
 /**
  * Program info
+ * @type {Command}
  */
 program
   .name(packageInfo.name)
@@ -43,19 +38,42 @@ program
 
 /**
  * `create` command
+ * @type {Command}
  */
 program.command('create')
   .description('Creates a .wacz file out of one or multiple .warc or .warc.gz files.')
-  .option('-f --file <string>', 'Path to .warc / .warc.gz file(s) to process. Wildcard characters may be used: make sure to wrap the option in quotation marks in that case.')
-  .option('-o --output <string>', 'Path to output .wacz file.', 'archive.wacz')
-  .option('-p --pages <string>', 'Path to a jsonl files to be used in lieu of pages.jsonl. If not provided, js-wacz will attempt to detect pages.')
-  .option('--url <string>', 'If provided, will be used as the "main page url" in datapackage.json.')
-  .option('--ts <string>', 'If provided, will be used as the "main page date" in datapackage.json.')
-  .option('--title <string>', 'If provided, will be used as the collection title.')
-  .option('--desc <string>', 'If provided, will be used as the collection description.')
-  .option('--signing-url <string>', 'If provided, will be used to cryptographically sign the archive. See https://specs.webrecorder.net/wacz-auth/0.1.0/')
-  .option('--signing-token <string>', 'Required if the server at --signing-url requires an authentication token.')
-  .option('--log-level <string>', 'Can be "silent", "trace", "debug", "info", "warn", "error"', 'info')
+  .option(
+    '-f --file <string>',
+    'Path to .warc / .warc.gz file(s) to process. Wrap in quotation marks if glob.')
+  .option(
+    '-o --output <string>',
+    'Path to output .wacz file.', 'archive.wacz')
+  .option(
+    '-p --pages <string>',
+    'Path to a jsonl files to be used to replace pages.jsonl. ' +
+    'If not provided, js-wacz will attempt to detect pages.')
+  .option(
+    '--url <string>',
+    'If provided, will be used as the "main page url" in datapackage.json.')
+  .option(
+    '--ts <string>',
+    'If provided, will be used as the "main page date" in datapackage.json.')
+  .option(
+    '--title <string>',
+    'If provided, will be used as the collection title.')
+  .option(
+    '--desc <string>',
+    'If provided, will be used as the collection description.')
+  .option(
+    '--signing-url <string>',
+    'URL of an authsign-compatible server to be used to cryptographically sign the archive. ' +
+    'See https://github.com/webrecorder/authsign.')
+  .option(
+    '--signing-token <string>',
+    'Required if the server at --signing-url requires an authentication token.')
+  .option(
+    '--log-level <string>',
+    'Can be "silent", "trace", "debug", "info", "warn", "error"', 'info')
   .action(async (name, options, command) => {
     /** @type {Object} */
     const values = options._optionValues
@@ -63,9 +81,7 @@ program.command('create')
     /** @type {?WACZ} */
     let archive = null
 
-    //
-    // Set log output level and prefix output
-    //
+    // Set log output level and formatting
     logPrefix.reg(log)
     logPrefix.apply(log, {
       format (level, _name, timestamp) {
@@ -83,20 +99,16 @@ program.command('create')
       }
 
       log.setLevel(level)
-      log.info(`Log output level as been set to ${level}`)
+      log.info(`Log output level as been set to ${level}.`)
     }
 
-    //
     // `--files` is mandatory
-    //
     if (!values?.file) {
       console.error('Error: --file not provided.')
       return
     }
 
-    //
     // Pass options to WACZ
-    //
     try {
       archive = new WACZ({
         file: values.file,
@@ -114,9 +126,7 @@ program.command('create')
       return
     }
 
-    //
-    // Digest user-provided pages.jsonl file, if any.
-    //
+    // Ingest user-provided pages.jsonl file, if any.
     if (values?.pages) {
       try {
         log.info(`pages.jsonl: Reading entries from ${values?.pages}`)
@@ -138,9 +148,7 @@ program.command('create')
       }
     }
 
-    //
     // Main process
-    //
     try {
       await archive.process()
       log.info(`WACZ file ready: ${values.output}`)

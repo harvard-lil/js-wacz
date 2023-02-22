@@ -5,9 +5,14 @@
   "main": "index.js",
   "type": "module",
   "bin": "./cli.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "js-wacz": "node cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "standard",
+    "lint-autofix": "standard --fix",
+    "test": "node --test"
   },
   "repository": {
     "type": "git",

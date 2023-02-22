@@ -1,3 +1,5 @@
+/// <reference path="types.js" />
+
 import fs from 'fs/promises'
 import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
@@ -11,8 +13,7 @@ import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
 import { assertValidWACZSignatureFormat } from './utils/assertions.js'
-
-/// <reference path="types.js" />
+import { packageInfo } from './utils/packageInfo.js'
 
 /**
  * IDX to CDX ratio for ZipNum Shared Index.
@@ -30,11 +31,10 @@ export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
  * ```javascript
  * const archive = new WACZ({
  *   file: 'my-collection/*.warc.gz',
- *   output: 'my-collection.wacz',
- *   title: "My awesome collection"
+ *   output: 'my-collection.wacz'
  * })
  *
- * await archive.process()
+ * await archive.process() // my-collection.wacz was written to disk.
  * ```
  */
 export class WACZ {
@@ -270,7 +270,7 @@ export class WACZ {
 
     if (options?.ts) {
       try {
-        const ts = new Date(options.ts).toISOString // will throw if invalid
+        const ts = new Date(options.ts).toISOString() // will throw if invalid
         this.ts = ts
       } catch (_err) {
         log.warn('"ts" provided is invalid. Skipping.')
@@ -576,7 +576,7 @@ export class WACZ {
       const datapackage = {
         created: this.datapackageDate,
         wacz_version: '1.1.1',
-        software: 'js-wacz',
+        software: `${packageInfo.name} ${packageInfo.version}`,
         resources
       }
 
@@ -619,7 +619,7 @@ export class WACZ {
   writeDatapackageDigestToZip = async () => {
     this.readyStateCheck()
 
-    const { archiveStream, resources, log, datapackageDate, signingUrl, signingToken } = this
+    const { archiveStream, resources, log, signingUrl } = this
 
     try {
       const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
@@ -651,6 +651,7 @@ export class WACZ {
 
   /**
    * Request signature for the current datapackage and checks its format.
+   * Expects the remote server to be authsign-compatible (https://github.com/webrecorder/authsign).
    * @returns {Promise<object>} - Signature to data to be appended to the datapackage digest.
    */
   requestSignature = async () => {

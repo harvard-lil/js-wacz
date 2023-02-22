@@ -3,7 +3,7 @@
  * @typedef {Object} WACZOptions
  * @property {string} file - Required. Path to input .warc or .warc.gz file(s). Can be a glob.
  * @property {string} output - Required. Path to output .wacz file. Will default to PWD + `archive.wacz` if not provided.
- * @property {?boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records.
+ * @property {boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records.
  * @property {?string} url - If set, will be added to datapackage.json as `mainPageUrl`.
  * @property {?string} ts - If set, will be added to datapackage.json as `mainPageDate`.
  * @property {?string} title - If set, will be added to datapackage.json as `title`.
