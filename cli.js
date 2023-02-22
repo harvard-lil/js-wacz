@@ -1,6 +1,5 @@
-/**
- * CLI entry point for js-wacz
- */
+#! /usr/bin/env node
+
 import { createReadStream } from 'fs'
 import * as readline from 'node:readline/promises'
 

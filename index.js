@@ -186,9 +186,6 @@ export class WACZ {
     this.filterBlockingOptions(options)
     this.filterNonBlockingOptions(options)
     this.ready = true
-
-    this.initOutputStreams()
-    this.initWorkerPool()
   }
 
   /**
@@ -316,6 +313,12 @@ export class WACZ {
     this.readyStateCheck()
 
     const info = verbose ? this.log.info : () => {}
+
+    info(`Initializing output stream at: ${this.output}`)
+    this.initOutputStreams()
+
+    info('Initializing indexer.')
+    this.initWorkerPool()
 
     info('Indexing WARCS.')
     await this.indexWARCs()

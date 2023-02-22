@@ -35,5 +35,5 @@ export const LOGGING_COLORS = {
  * @type {Object}
  */
 export const PACKAGE_INFO = Object.freeze(
-  JSON.parse(await fs.readFile('./package.json'))
+  JSON.parse(await fs.readFile(`${BASE_PATH}${sep}package.json`))
 )
