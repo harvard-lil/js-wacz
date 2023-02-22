@@ -97,7 +97,7 @@ program.command('create')
     // Pass options to WACZ
     try {
       archive = new WACZ({
-        file: values.file,
+        input: values.file,
         output: values?.output,
         url: values?.url,
         ts: values?.ts,

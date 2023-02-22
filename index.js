@@ -199,14 +199,14 @@ export class WACZ {
   filterBlockingOptions = (options) => {
     const log = this.log
 
-    // options.file
+    // options.input
     try {
-      if (!options?.file) {
-        throw new Error('`file` was not provided.')
+      if (!options?.input) {
+        throw new Error('`input` was not provided.')
       }
 
-      this.file = String(options.file).trim()
-      const results = glob.sync(this.file)
+      this.file = String(options.input).trim()
+      const results = glob.sync(this.input)
 
       for (const file of results) {
         const filename = basename(file).toLowerCase()
@@ -224,7 +224,7 @@ export class WACZ {
       }
     } catch (err) {
       log.trace(err)
-      throw new Error('"file" must be a valid path leading to at least 1 .warc or .warc.gz file.')
+      throw new Error('"input" must be a valid path leading to at least 1 .warc or .warc.gz file.')
     }
 
     // options.output
