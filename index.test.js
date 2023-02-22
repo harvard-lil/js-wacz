@@ -5,6 +5,8 @@ import assert from 'node:assert/strict'
 import { sep } from 'path'
 
 import log from 'loglevel'
+import glob from 'glob'
+import StreamZip from 'node-stream-zip'
 
 import { WACZ } from './index.js'
 import { FIXTURES_PATH } from './constants.js'
@@ -149,3 +151,60 @@ test('WACZ constructor accounts for options.datapackageExtras if provided.', asy
   const archive = new WACZ({ input: FIXTURE_INPUT, datapackageExtras })
   assert.equal(archive.datapackageExtras, datapackageExtras)
 })
+
+test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT })
+  assert.equal(archive.detectPages, true)
+  assert.equal(archive.pagesTree.length, 0)
+
+  archive.addPage('https://lil.law.harvard.edu', 'LIL')
+
+  assert.equal(archive.detectPages, false)
+  assert.equal(archive.pagesTree.length, 1)
+})
+
+test('WACZ.process runs the entire process and writes a .wacz to disk, accounting for options.', async (_t) => {
+  const options = {
+    input: FIXTURE_INPUT,
+    output: 'tmp.wacz',
+    url: 'https://lil.law.harvard.edu',
+    title: 'WACZ Title',
+    description: 'WACZ Description',
+    ts: '2023-02-22T12:00:00Z',
+    datapackageExtras: { context: 'Testing' }
+  }
+
+  const archive = new WACZ(options)
+  await archive.process()
+
+  // Load up resulting WACZ to check that everything worked
+  const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
+  const entries = await zip.entries()
+
+  // Indexes should be present
+  assert(await zip.entryData('indexes/index.idx'))
+  assert(await zip.entryData('indexes/index.cdx.gz'))
+
+  // There should be as many .warc.gz files as there are in the fixtures folder
+  let warcCount = 0
+
+  for (const entry of Object.values(entries)) {
+    if (entry.name.endsWith('.warc.gz')) {
+      warcCount += 1
+    }
+  }
+  assert.equal(warcCount, glob.sync(FIXTURE_INPUT).length)
+
+  // datapackage.json and datapackage-digest.json should be present, valid, and hold the data we passed to it.
+  const datapackage = JSON.parse(await zip.entryData('datapackage.json'))
+  // const datapackageDigest = JSON.parse(await zip.entryData('datapackage-digest.json'))
+
+  assert.equal(datapackage.title, options.title)
+  assert.equal(datapackage.description, options.description)
+  assert.equal(datapackage.mainPageUrl, options.url)
+  assert.equal(datapackage.mainPageDate, new Date(options.ts).toISOString())
+
+  // All lines in pages.jsonl should be valid JSON
+})
+
+// Test signing if server is available

@@ -339,7 +339,7 @@ export class WACZ {
     await this.writeDatapackageDigestToZip()
 
     info('Finalizing ZIP.')
-    this.finalize()
+    await this.finalize()
 
     info('Done.')
   }
@@ -703,16 +703,29 @@ export class WACZ {
       throw new Error('Server returned an invalid WACZ signature.')
     }
 
-    return json
+    return signedData
   }
 
   /**
    * Finalizes ZIP file
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  finalize = () => {
+  finalize = async () => {
     this.readyStateCheck()
+
+    // "Pinky Promise pattern"
+    let closeStreamResolve = null
+
+    const closeStreamPromise = new Promise(resolve => {
+      closeStreamResolve = resolve
+    })
+
+    this.outputStream.on('close', () => {
+      closeStreamResolve()
+    })
+
     this.archiveStream.finalize()
+    await closeStreamPromise // Wait for file stream to close
   }
 
   /**

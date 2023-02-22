@@ -39,6 +39,8 @@
     "warcio": "^2.0.1"
   },
   "devDependencies": {
+    "dotenv": "^16.0.3",
+    "node-stream-zip": "^1.15.0",
     "standard": "^17.0.0"
   }
 }

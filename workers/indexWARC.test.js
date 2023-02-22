@@ -26,7 +26,7 @@ test('indexWARC returns CDXJ and detected pages for a given WARC file.', async (
 
   for (const entry of results.cdx) { // Loosely check CDXJ format
     const split = entry.split(' ')
-    assert(split.length === 3)
+    assert.equal(split.length, 3)
 
     const json = JSON.parse(split[2])
     assert(json.offset)
@@ -52,5 +52,5 @@ test('indexWARC does not detect pages if detectPages option is off.', async (_t)
   })
 
   assert(results.cdx.length > 0)
-  assert(results.pages.length === 0)
+  assert.equal(results.pages.length, 0)
 })

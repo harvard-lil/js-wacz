@@ -9,7 +9,7 @@ import logPrefix from 'loglevel-plugin-prefix'
 import { Command } from 'commander'
 
 import { WACZ } from './index.js'
-import { PACKAGE_INFO, LOGGING_COLORS } from './constants'
+import { PACKAGE_INFO, LOGGING_COLORS } from './constants.js'
 
 const program = new Command()
 
