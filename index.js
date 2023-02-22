@@ -491,11 +491,13 @@ export class WACZ {
 
       archiveStream.append(idx, { name: 'indexes/index.idx' })
 
+      const idxBuffer = Buffer.from(idx)
+
       resources.push({
         name: 'index.idx',
         path: 'indexes/index.idx',
-        hash: await this.sha256(Buffer.from(idx)),
-        bytes: idx.byteLength
+        hash: await this.sha256(idxBuffer),
+        bytes: idxBuffer.byteLength
       })
     } catch (err) {
       log.trace(err)
@@ -521,11 +523,13 @@ export class WACZ {
 
       archiveStream.append(pagesJSONL, { name: 'pages/pages.jsonl' })
 
+      const pagesJSONLBuffer = Buffer.from(pagesJSONL)
+
       resources.push({
         name: 'pages.jsonl',
         path: 'pages/pages.jsonl',
-        hash: await this.sha256(Buffer.from(pagesJSONL)),
-        bytes: pagesJSONL.byteLength
+        hash: await this.sha256(pagesJSONLBuffer),
+        bytes: pagesJSONLBuffer.byteLength
       })
     } catch (err) {
       log.trace(err)

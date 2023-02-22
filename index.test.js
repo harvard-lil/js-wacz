@@ -3,16 +3,23 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { sep } from 'path'
+import fs from 'fs/promises'
 
 import log from 'loglevel'
 import glob from 'glob'
 import StreamZip from 'node-stream-zip'
+import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
 import { FIXTURES_PATH } from './constants.js'
+import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+
+// Loads env vars from .env if provided
+dotenv.config()
 
 /**
  * Path to *.warc.gz files in the fixture folder.
+ * @constant
  */
 const FIXTURE_INPUT = `${FIXTURES_PATH}${sep}*.warc.gz`
 
@@ -163,7 +170,11 @@ test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) =>
   assert.equal(archive.pagesTree.length, 1)
 })
 
-test('WACZ.process runs the entire process and writes a .wacz to disk, accounting for options.', async (_t) => {
+// Note: if `TEST_SIGNING_URL` / `TEST_SIGNING_TOKEN` are present, this will also test the signing feature.
+test('WACZ.process runs the entire process and writes a valid .wacz to disk, accounting for options.', async (_t) => {
+  //
+  // Preparation step: create WACZ out of .warc.gz files in "fixtures" folder.
+  //
   const options = {
     input: FIXTURE_INPUT,
     output: 'tmp.wacz',
@@ -171,40 +182,102 @@ test('WACZ.process runs the entire process and writes a .wacz to disk, accountin
     title: 'WACZ Title',
     description: 'WACZ Description',
     ts: '2023-02-22T12:00:00Z',
-    datapackageExtras: { context: 'Testing' }
+    datapackageExtras: { context: 'Testing' },
+    signingUrl: process.env?.TEST_SIGNING_URL,
+    signingToken: process.env?.TEST_SIGNING_TOKEN
   }
 
   const archive = new WACZ(options)
   await archive.process()
 
+  //
   // Load up resulting WACZ to check that everything worked
+  //
   const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
-  const entries = await zip.entries()
+  const zipEntries = await zip.entries()
 
+  //
   // Indexes should be present
+  //
   assert(await zip.entryData('indexes/index.idx'))
   assert(await zip.entryData('indexes/index.cdx.gz'))
 
+  //
   // There should be as many .warc.gz files as there are in the fixtures folder
+  //
   let warcCount = 0
 
-  for (const entry of Object.values(entries)) {
+  for (const entry of Object.values(zipEntries)) {
     if (entry.name.endsWith('.warc.gz')) {
       warcCount += 1
     }
   }
   assert.equal(warcCount, glob.sync(FIXTURE_INPUT).length)
 
-  // datapackage.json and datapackage-digest.json should be present, valid, and hold the data we passed to it.
+  //
+  // datapackage.json should be present, valid, and hold the data we passed to it.
+  //
   const datapackage = JSON.parse(await zip.entryData('datapackage.json'))
-  // const datapackageDigest = JSON.parse(await zip.entryData('datapackage-digest.json'))
 
   assert.equal(datapackage.title, options.title)
   assert.equal(datapackage.description, options.description)
   assert.equal(datapackage.mainPageUrl, options.url)
   assert.equal(datapackage.mainPageDate, new Date(options.ts).toISOString())
+  assert.deepEqual(datapackage.extras, options.datapackageExtras)
 
-  // All lines in pages.jsonl should be valid JSON
+  assert.deepEqual(
+    datapackage.resources,
+    archive.resources.filter(entry => entry.name !== 'datapackage.json')
+  )
+
+  //
+  // datapackage-digest.json should be present and valid
+  //
+  const datapackageDigest = JSON.parse(await zip.entryData('datapackage-digest.json'))
+
+  assert(datapackageDigest.hash)
+  assert.doesNotThrow(() => assertSHA256WithPrefix(datapackageDigest.hash))
+  assert(datapackageDigest.path, 'datapackage.json')
+
+  // Extra: if `TEST_SIGNING_URL` was provided, check signature
+  if (process.env?.TEST_SIGNING_URL) {
+    assert.doesNotThrow(() => assertValidWACZSignatureFormat(datapackageDigest.signedData))
+  }
+
+  //
+  // All lines in pages.jsonl should be valid JSON in the format we expect.
+  //
+  const pagesJSONL = (await zip.entryData('pages/pages.jsonl')).toString('utf-8')
+  let pagesCount = 0
+
+  for (const entry of pagesJSONL.split('\n')) {
+    if (!entry.startsWith('{')) {
+      continue
+    }
+
+    const page = JSON.parse(entry)
+
+    // First line
+    if (page?.format) {
+      assert.equal(page.format, 'json-pages-1.0')
+      assert(page.id)
+      assert(page.title)
+      continue
+    }
+
+    // All other lines
+    assert(page.url)
+    assert(page.id)
+
+    if (page?.ts) {
+      assert.doesNotThrow(() => new Date(page.ts))
+    }
+
+    pagesCount += 1
+  }
+
+  assert.notEqual(pagesCount, 0)
+
+  // Delete temp file
+  await fs.unlink(options.output)
 })
-
-// Test signing if server is available

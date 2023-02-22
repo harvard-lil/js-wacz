@@ -6,16 +6,19 @@ import chalk from 'chalk'
 
 /**
  * Path to the library.
+ * @constant
  */
 export const BASE_PATH = dirname(fileURLToPath(import.meta.url))
 
 /**
  * Path to the fixtures folder.
+ * @constant
  */
 export const FIXTURES_PATH = `${BASE_PATH}${sep}fixtures${sep}`
 
 /**
  * Colors scheme for log level.
+ * @constant
  */
 export const LOGGING_COLORS = {
   DEFAULT: chalk.gray,
@@ -28,7 +31,8 @@ export const LOGGING_COLORS = {
 
 /**
  * This project's package.json as a frozen object.
- * @returns {Object}
+ * @constant
+ * @type {Object}
  */
 export const PACKAGE_INFO = Object.freeze(
   JSON.parse(await fs.readFile('./package.json'))

@@ -88,7 +88,7 @@ program.command('create')
       log.info(`Log output level as been set to ${level}.`)
     }
 
-    // `--files` is mandatory
+    // `--file` is mandatory
     if (!values?.file) {
       console.error('Error: --file not provided.')
       return
@@ -108,7 +108,7 @@ program.command('create')
         log
       })
     } catch (err) {
-      log.error(`${err}`) // Show simplified version
+      log.error(`${err}`) // Show simplified report
       return
     }
 
