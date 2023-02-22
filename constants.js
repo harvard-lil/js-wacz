@@ -30,4 +30,6 @@ export const LOGGING_COLORS = {
  * This project's package.json as a frozen object.
  * @returns {Object}
  */
-export const PACKAGE_INFO = Object.freeze(JSON.parse(await fs.readFile('./package.json')))
+export const PACKAGE_INFO = Object.freeze(
+  JSON.parse(await fs.readFile('./package.json'))
+)

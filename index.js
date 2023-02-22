@@ -13,7 +13,7 @@ import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
 import { assertValidWACZSignatureFormat } from './utils/assertions.js'
-import { PACKAGE_INFO } from '../constants.js'
+import { PACKAGE_INFO } from './constants.js'
 
 /**
  * IDX to CDX ratio for ZipNum Shared Index.
@@ -54,10 +54,10 @@ export class WACZ {
   indexWARCPool = null
 
   /**
-   * From WACZOptions.file.
+   * From WACZOptions.input.
    * @type {?string}
    */
-  file = null
+  input = null
 
   /**
    * From WACZOptions.output.
@@ -205,7 +205,7 @@ export class WACZ {
         throw new Error('`input` was not provided.')
       }
 
-      this.file = String(options.input).trim()
+      this.input = String(options.input).trim()
       const results = glob.sync(this.input)
 
       for (const file of results) {
@@ -261,8 +261,8 @@ export class WACZ {
 
     if (options?.url) {
       try {
-        const url = new URL(options.url).href // will throw if invalid
-        this.url = url
+        new URL(options.url) // eslint-disable-line
+        this.url = options.url
       } catch (_err) {
         log.warn('"url" provided is invalid. Skipping.')
       }
@@ -287,8 +287,8 @@ export class WACZ {
 
     if (options?.signingUrl) {
       try {
-        const signingUrl = new URL(options.signingUrl).href // will throw if invalid
-        this.signingUrl = signingUrl
+        new URL(options.signingUrl) // eslint-disable-line
+        this.signingUrl = options.signingUrl
       } catch (_err) {
         log.warn('"signingUrl" provided is not a valid url. Skipping.')
       }

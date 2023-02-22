@@ -44,3 +44,13 @@ test('indexWARC returns CDXJ and detected pages for a given WARC file.', async (
     assert(page.title)
   }
 })
+
+test('indexWARC does not detect pages if detectPages option is off.', async (_t) => {
+  const results = await indexWARC({
+    filename: `${FIXTURES_PATH}${sep}lil-projects.warc.gz`,
+    detectPages: false
+  })
+
+  assert(results.cdx.length > 0)
+  assert(results.pages.length === 0)
+})
