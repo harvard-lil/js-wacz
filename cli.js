@@ -125,7 +125,7 @@ program.command('create')
             continue
           }
 
-          log.info(`Adding ${page.url}`)
+          log.info(`Adding ${page.url}.`)
           archive.addPage(page?.url, page?.title, page?.ts)
         }
       } catch (err) {
