@@ -13,7 +13,7 @@ It can be used to combine a set of `.warc` / `.warc.gz` files into a single `.wa
 import { WACZ } from "js-wacz"
 
 const archive = new WACZ({ 
-  input: 'my-collection/*.wac.gz', 
+  input: 'my-collection/*.warc.gz', 
   output: 'my-collection.wacz',
 })
 await archive.process() // "my-collection.wacz" is ready!
