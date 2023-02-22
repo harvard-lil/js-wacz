@@ -20,7 +20,7 @@
  * @property {string} id
  * @property {string} url
  * @property {string} title
- * @property {string} ts - Timestamp (ISO date)
+ * @property {string} ts - Timestamp as ISO date. Example: "2023-02-22T16:19:54Z".
  */
 
 /**
