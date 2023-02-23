@@ -28,10 +28,10 @@ export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
  * Utility class allowing for merging multiple .warc / .warc.gz files into a single .wacz file.
  *
  * Usage:
- * ```javascript
+ * ```
  * const archive = new WACZ({
- *   file: 'my-collection/*.warc.gz',
- *   output: 'my-collection.wacz'
+ *   file: 'collection/*.warc.gz',
+ *   output: 'collection.wacz'
  * })
  *
  * await archive.process() // my-collection.wacz was written to disk.

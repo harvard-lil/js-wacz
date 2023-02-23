@@ -24,7 +24,7 @@ await archive.process() // "my-collection.wacz" is ready!
 js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
 ```
 
-`js-wacz` makes use of workers to process as many WARC files in parallel as the host machine can handle.
+**js-wacz** makes use of workers to process as many WARC files in parallel as the host machine can handle.
 
 ---
 
@@ -40,9 +40,9 @@ js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
 
 ## Install
 
-`js-wacz` requires [Node JS 18+](https://nodejs.org/en/). 
+**js-wacz** requires [Node JS 18+](https://nodejs.org/en/). 
 
-`npm` can be used to install this package and make the `js-wacz` command accessible system-wide:
+`npm` can be used to install this package and make the **js-wacz** command accessible system-wide:
 
 ```bash
 npm install -g @harvard-lil/js-wacz
@@ -60,7 +60,7 @@ The `create` command helps combine one or multiple `.warc` or `.warc.gz` files i
 js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
 ```
 
-`js-wacz` accepts the following options and arguments for customizing how the WACZ file is assembled.
+**js-wacz** accepts the following options and arguments for customizing how the WACZ file is assembled.
 
 <details>
 <summary><h3>--file, -f</h3></summary>
@@ -70,7 +70,12 @@ This is the only **required** argument, which indicates what file(s) should be p
 The target can be a single file, or a glob pattern such as `folder/*.warc.gz`. 
 
 ```bash
+# Single file:
 js-wacz --file archive.warc
+```
+
+```bash
+# Collection:
 js-wacz --file "collection/*.warc"
 ```
 
@@ -94,7 +99,7 @@ js-wacz --file cool-beans.warc --output cool-beans.wacz
 
 Allows to pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) file. 
 
-If not provided, `js-wacz` is going to attempt to detect pages in WARC records to build its own `pages.jsonl` index.
+If not provided, **js-wacz** is going to attempt to detect pages in WARC records to build its own `pages.jsonl` index.
 
 ```bash
 js-wacz -f "collection/*.warc.gz" --pages collection/pages.jsonl
@@ -170,7 +175,7 @@ js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign" --sig
 <details>
 <summary><h3>--log-level</h3></summary>
 
-Can be used to determine how verbose `js-wacz` needs to be.
+Can be used to determine how verbose **js-wacz** needs to be.
 
 - Possible values are: `silent`, `trace`, `debug`, `info`, `warn`, `error`
 - Default is: `info`
@@ -185,6 +190,34 @@ js-wacz -f "collection/*.warc.gz" --log-level trace
 ---
 
 ## Programmatic use
+
+**js-wacz**'s CLI and underlying logic are decoupled, and it can therefore be consumed as a JavaScript module (currently only with NodeJS).
+
+**Example: Creating a signed WACZ programmatically**
+```javascript
+import { WACZ } from 'js-wacz'
+
+try {
+  const archive = new WACZ({ 
+    file: 'collection/*.warc.gz',
+    output: 'collection.wacz',
+    signingUrl: 'https://example.com/sign',
+    signingToken: 'FOO-BAR',
+  }
+
+  await archive.process()
+
+  // collection.wacz is ready
+} catch(err) {
+  // ...
+}
+```
+
+Although a `process()` convenience method is made available, every step of said process can be run individually and the archive's state inspected / edited throughout.
+
+### References:
+- [WACZ Class](https://github.com/harvard-lil/js-wacz/blob/main/index.js#L40)
+- [Available options](https://github.com/harvard-lil/js-wacz/blob/main/types.js#L3)
 
 [👆 Back to summary](#summary)
 
