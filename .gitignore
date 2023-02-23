@@ -1,6 +1,4 @@
 node_modules
-*.warc
-*.warc.gz
 *.wacz
 .DS_Store
 tmp/
