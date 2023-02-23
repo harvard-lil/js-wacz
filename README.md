@@ -87,7 +87,7 @@ js-wacz --file "collection/*.warc"
 
 Allows to specify where the resulting `.wacz` file should be created, and what its filename should be.
 
-Defaults to `archive.wacz` if not provided.
+Defaults to `archive.wacz` in the current directory if not provided.
 
 ```bash
 js-wacz --file cool-beans.warc --output cool-beans.wacz

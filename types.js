@@ -5,7 +5,7 @@
  * @property {string} output - Required. Path to output .wacz file. Will default to PWD + `archive.wacz` if not provided.
  * @property {boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records.
  * @property {?string} url - If set, will be added to datapackage.json as `mainPageUrl`.
- * @property {?string} ts - If set, will be added to datapackage.json as `mainPageDate`.
+ * @property {?string} ts - If set, will be added to datapackage.json as `mainPageDate`. Can be any value that `Date()` can parse.
  * @property {?string} title - If set, will be added to datapackage.json as `title`.
  * @property {?string} description - If set, will be added to datapackage.json as `description`.
  * @property {string} signingUrl - If set, will be used to try and sign the resulting archive.
