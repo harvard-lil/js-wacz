@@ -1,5 +1,5 @@
 {
-  "name": "js-wacz",
+  "name": "@harvard-lil/js-wacz",
   "version": "0.0.1",
   "description": "JavaScript module and CLI tool for working with web archive data using the WACZ format specification.",
   "main": "index.js",
