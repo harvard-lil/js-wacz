@@ -255,7 +255,7 @@ This project uses [Node.js' built-in test runner](https://nodejs.org/api/test.ht
 npm run test
 ```
 
-**Tests-specific environment variables:** 
+#### Tests-specific environment variables
 The following environment variables allow for testing features requiring access to a third-party server. 
 
 These are optional, and can be added to a local `.env` file which will be automatically interpreted by the test runner.
