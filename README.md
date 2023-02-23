@@ -14,6 +14,7 @@ const archive = new WACZ({
   input: 'collection/*.warc.gz', 
   output: 'collection.wacz',
 })
+
 await archive.process() // "my-collection.wacz" is ready!
 ```
 
