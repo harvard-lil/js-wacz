@@ -1,5 +1,3 @@
-> 🚧 🚧 🚧
-
 # js-wacz 
 
 [![npm version](https://badge.fury.io/js/@harvard-lil%2Fjs-wacz.svg)](https://badge.fury.io/js/@harvard-lil%2Fjs-wacz) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
@@ -8,7 +6,7 @@ JavaScript module and CLI tool for working with web archive data using [the WACZ
 
 It can be used to combine a set of `.warc` / `.warc.gz` files into a single `.wacz` file:
 
-**... programmatically (Node JS):**
+**... programmatically (Node.js):**
 ```javascript
 import { WACZ } from "js-wacz"
 
@@ -191,7 +189,7 @@ js-wacz -f "collection/*.warc.gz" --log-level trace
 
 ## Programmatic use
 
-**js-wacz**'s CLI and underlying logic are decoupled, and it can therefore be consumed as a JavaScript module (currently only with NodeJS).
+**js-wacz**'s CLI and underlying logic are decoupled, and it can therefore be consumed as a JavaScript module _(currently only with Node.js)_.
 
 **Example: Creating a signed WACZ programmatically**
 ```javascript
@@ -226,16 +224,69 @@ Although a `process()` convenience method is made available, every step of said 
 
 ## Feature parity with py-wacz
 
+**js-wacz** is aiming at partial feature parity with [webrecorder's py-wacz](https://specs.webrecorder.net/wacz/1.1.1/), similar to [Webrecorder's py-wacz](https://github.com/webrecorder/py-wacz). 
+
+This section lists notable differences in implementation that might affect interoperability. 
+
+**Main differences in currently implemented features:**
+- **CLI:** `create --detect-pages`: `--detect-pages` is implied in **js-wacz** unless `--pages` is provided.
+- **CLI:** `create --file`: that argument can be implied in **py-wacz**, it is always explicit in **js-wacz**.
+
 [👆 Back to summary](#summary)
 
 ---
 
 ## Development
 
+### Standard JS
+This codebase uses the [Standard JS](https://standardjs.com/) coding style. 
+- `npm run lint` can be used to check formatting.
+- `npm run lint-autofix` can be used to check formatting _and_ automatically edit files accordingly when possible.
+- Most IDEs can be configured to automatically check and enforce this coding style.
+
+### JSDoc
+[JSDoc](https://jsdoc.app/) is used for both documentation and loose type checking purposes on this project.
+
+### Testing
+
+This project uses [Node.js' built-in test runner](https://nodejs.org/api/test.html).
+
+```bash
+npm run test
+```
+
+**Tests-specific environment variables:** 
+The following environment variables allow for testing features requiring access to a third-party server. 
+
+These are optional, and can be added to a local `.env` file which will be automatically interpreted by the test runner.
+
+| Name | Description |
+| --- | --- |
+| `TEST_SIGNING_URL` | Url of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files. | 
+| `TEST_SIGNING_TOKEN` | If required by the server at `TEST_SIGNING_URL`, an authentication token. |
+
+
 [👆 Back to summary](#summary)
 
 ---
 
 ## TODOs
+
+> To be prioritized and converted to GitHub issues 🚧
+
+### Feature Parity
+- [ ] **CLI & API:** `create` - Full-text index generation ([--text](https://github.com/webrecorder/py-wacz#-t---text-1))
+- [ ] **CLI & API:** `create` - Hashing algorithm selection ([--hash-type](https://github.com/webrecorder/py-wacz#--hash-type))
+- [ ] **CLI & API:** `validate` command ([WACZ integrity and signature validation](https://github.com/webrecorder/py-wacz#validate)).
+
+### Other
+- [ ] **js-wacz** currently relies on Node.js-specific APIs and would benefit to become more platform agnostic _(Deno, Bun, Browser ...)_
+- [ ] **js-wacz** currently only is allows for interacting with files stored on disk (input and output). 
+  - [ ] The library should also be able to work with in-memory input and output (`Buffer`, `ArrayBuffer` ...).
+  - [ ] The CLI should accept stdin as an input for `.warc`.
+
+### Future features
+- [ ] **CLI & API:** `read` - Feature for parsing WACZ, either locally or remotely via range requests.
+
 
 [👆 Back to summary](#summary)
