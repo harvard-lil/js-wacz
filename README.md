@@ -62,7 +62,8 @@ js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
 
 `js-wacz` accepts the following options and arguments for customizing how the WACZ file is assembled.
 
-### --file, -f
+<details>
+<summary><h3>--file, -f</h3></summary>
 
 This is the only **required** argument, which indicates what file(s) should be processed and added to the resulting WACZ file.
 
@@ -74,9 +75,10 @@ js-wacz --file "collection/*.warc"
 ```
 
 **Note:** When using globs, make sure to surround the path with quotation marks.
+</details>
 
-
-### --output, -o
+<details>
+<summary><h3>--output, -o</h3></summary>
 
 Allows to specify where the resulting `.wacz` file should be created, and what its filename should be.
 
@@ -85,8 +87,10 @@ Defaults to `archive.wacz` if not provided.
 ```bash
 js-wacz --file cool-beans.warc --output cool-beans.wacz
 ```
+</details>
 
-### --pages, -p
+<details>
+<summary><h3>--pages, -p</h3></summary>
 
 Allows to pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) file. 
 
@@ -95,8 +99,10 @@ If not provided, `js-wacz` is going to attempt to detect pages in WARC records t
 ```bash
 js-wacz -f "collection/*.warc.gz" --pages collection/pages.jsonl
 ```
+</details>
 
-### --url
+<details>
+<summary><h3>--url</h3></summary>
 
 If provided, will be used as the [`mainPageUrl` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
@@ -105,8 +111,10 @@ Must be a valid URL.
 ```bash
 js-wacz -f "collection/*.warc.gz" --url "https://lil.law.harvard.edu"
 ```
+</details>
 
-### --ts
+<details>
+<summary><h3>--ts</h3></summary>
 
 If provided, will be used as the [`mainPageDate` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
@@ -115,24 +123,30 @@ Can be any value [that can be parsed by JavaScript's `Date() constructor`](https
 ```bash
 js-wacz -f "collection/*.warc.gz" --ts "2023-02-22T12:00:00.000Z"
 ```
+</details>
 
-### --title
+<details>
+<summary><h3>--title</h3></summary>
 
 If provided, will be used as the [`title` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
 ```bash
 js-wacz -f "collection/*.warc.gz" --title "My collection."
 ```
+</details>
 
-### --desc
+<details>
+<summary><h3>--desc</h3></summary>
 
 If provided, will be used as the [`description` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
 ```bash
 js-wacz -f "collection/*.warc.gz" --desc "My cool collection of web archives."
 ```
+</details>
 
-### --signing-url
+<details>
+<summary><h3>--signing-url</h3></summary>
 
 If provided, will be used as an API endpoint for applying [a cryptographic signature to the resulting WACZ file](https://specs.webrecorder.net/wacz-auth/0.1.0/).
 
@@ -141,16 +155,20 @@ This endpoint is expected to be [authsign-compatible](https://github.com/webreco
 ```bash
 js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign"
 ```
+</details>
 
-### --signing-token
+<details>
+<summary><h3>--signing-token</h3></summary>
 
 Used conjointly with `--signing-url` if provided, in case the signing server requires authentication.
 
 ```bash
 js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign" --signing-token "FOO-BAR"
 ```
+</details>
 
-### --log-level
+<details>
+<summary><h3>--log-level</h3></summary>
 
 Can be used to determine how verbose `js-wacz` needs to be.
 
@@ -160,6 +178,7 @@ Can be used to determine how verbose `js-wacz` needs to be.
 ```bash
 js-wacz -f "collection/*.warc.gz" --log-level trace
 ```
+</details>
 
 [👆 Back to summary](#summary)
 
