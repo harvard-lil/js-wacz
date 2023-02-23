@@ -1,0 +1,8 @@
+node_modules
+*.wacz
+*.warc.gz
+*.warc
+.DS_Store
+tmp/
+tmp.js
+.env
