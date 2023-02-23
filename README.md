@@ -248,7 +248,6 @@ This codebase uses the [Standard JS](https://standardjs.com/) coding style.
 [JSDoc](https://jsdoc.app/) is used for both documentation and loose type checking purposes on this project.
 
 ### Testing
-
 This project uses [Node.js' built-in test runner](https://nodejs.org/api/test.html).
 
 ```bash
@@ -258,7 +257,7 @@ npm run test
 #### Tests-specific environment variables
 The following environment variables allow for testing features requiring access to a third-party server. 
 
-These are optional, and can be added to a local `.env` file which will be automatically interpreted by the test runner.
+These are optional, and can be added to a local `.env` file which will be automatically interpreted by the test runner. 
 
 | Name | Description |
 | --- | --- |
@@ -280,13 +279,12 @@ These are optional, and can be added to a local `.env` file which will be automa
 - [ ] **CLI & API:** `validate` command ([WACZ integrity and signature validation](https://github.com/webrecorder/py-wacz#validate)).
 
 ### Other
-- [ ] **js-wacz** currently relies on Node.js-specific APIs and would benefit to become more platform agnostic _(Deno, Bun, Browser ...)_
-- [ ] **js-wacz** currently only is allows for interacting with files stored on disk (input and output). 
+- [ ] **Platform agnostic**: This project currently relies on Node.js-specific APIs and would benefit to become more interoperable _(Deno, Bun, Browser ...)_
+- [ ] **Buffers as input and output:** This project currently allows for interacting with files stored on disk. 
   - [ ] The library should also be able to work with in-memory input and output (`Buffer`, `ArrayBuffer` ...).
   - [ ] The CLI should accept stdin as an input for `.warc`.
 
 ### Future features
 - [ ] **CLI & API:** `read` - Feature for parsing WACZ, either locally or remotely via range requests.
-
 
 [👆 Back to summary](#summary)
