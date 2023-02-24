@@ -1,7 +1,7 @@
 /// <reference path="types.js" />
 
 import fs from 'fs/promises'
-import { createWriteStream, createReadStream, WriteStream, unlinkSync, ReadStream } from 'fs' // eslint-disable-line
+import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep } from 'path'
 
