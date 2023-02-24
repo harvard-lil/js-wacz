@@ -266,7 +266,7 @@ These are optional, and can be added to a local `.env` file which will be automa
 - [ ] **CLI & API:** `validate` command ([WACZ integrity and signature validation](https://github.com/webrecorder/py-wacz#validate)).
 
 ### Other
-- [ ] **Simple CDX:** ZipNum Shared Index should not be used if there is less than X entries in the CDX.
+- [ ] **Simple CDX:** Use simple CDX file if IDX file would only contain 1 entry.
 - [ ] **Platform agnostic**: This project currently relies on Node.js-specific APIs and would benefit to become more interoperable _(Deno, Bun, Browser ...)_
 - [ ] **Buffers as input and output:** This project currently allows for interacting with files stored on disk. 
   - [ ] The library should also be able to work with in-memory input and output (`Buffer`, `ArrayBuffer` ...).
