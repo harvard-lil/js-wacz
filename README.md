@@ -1,6 +1,6 @@
 # js-wacz 
 
-[![npm version](https://badge.fury.io/js/@harvard-lil%2Fjs-wacz.svg)](https://badge.fury.io/js/@harvard-lil%2Fjs-wacz) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![Tests](https://github.com/harvard-lil/js-wacz/actions/workflows/test.yml/badge.svg)](https://github.com/harvard-lil/js-wacz/actions/workflows/test.yml) [![npm version](https://img.shields.io/npm/v/@harvard-lil/js-wacz)](https://www.npmjs.com/package/@harvard-lil/js-wacz) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 JavaScript module and CLI tool for working with web archive data using [the WACZ format specification](https://specs.webrecorder.net/wacz/1.1.1/), similar to [Webrecorder's py-wacz](https://github.com/webrecorder/py-wacz).
 
@@ -195,9 +195,14 @@ try {
 
 Although a `process()` convenience method is made available, every step of said process can be run individually and the archive's state inspected / edited throughout.
 
+### Notable affordances
+- `WACZ.addPage()` allows for manually adding an entry to `pages.jsonl`.
+- `WACZ.addFileToZip()` allows for manually adding any additional data to the final WACZ file.
+- The `datapackageExtras` option allows for adding an arbitrary JSON-serializable object to datapackage.json under `extras`. 
+
 ### References:
-- [WACZ Class](https://github.com/harvard-lil/js-wacz/blob/main/index.js#L40)
-- [Available options](https://github.com/harvard-lil/js-wacz/blob/main/types.js#L3)
+- [WACZ Class](https://github.com/harvard-lil/js-wacz/blob/main/index.js)
+- [Available options](https://github.com/harvard-lil/js-wacz/blob/main/types.js)
 
 [👆 Back to summary](#summary)
 
@@ -261,6 +266,7 @@ These are optional, and can be added to a local `.env` file which will be automa
 - [ ] **CLI & API:** `validate` command ([WACZ integrity and signature validation](https://github.com/webrecorder/py-wacz#validate)).
 
 ### Other
+- [ ] **Simple CDX:** ZipNum Shared Index should not be used if there is less than X entries in the CDX.
 - [ ] **Platform agnostic**: This project currently relies on Node.js-specific APIs and would benefit to become more interoperable _(Deno, Bun, Browser ...)_
 - [ ] **Buffers as input and output:** This project currently allows for interacting with files stored on disk. 
   - [ ] The library should also be able to work with in-memory input and output (`Buffer`, `ArrayBuffer` ...).

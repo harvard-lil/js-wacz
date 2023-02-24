@@ -1,7 +1,7 @@
 /// <reference path="types.js" />
 
 import fs from 'fs/promises'
-import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
+import { createWriteStream, createReadStream, WriteStream, unlinkSync, ReadStream } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep } from 'path'
 
@@ -48,6 +48,11 @@ export class WACZ {
   ready = false
 
   /**
+   * If `true`, this object has been consumed and should be discarded
+   */
+  consumed = false
+
+  /**
    * Worker pool for the `indexWARC` function.
    * @type {?Piscina}
    */
@@ -55,7 +60,7 @@ export class WACZ {
 
   /**
    * From WACZOptions.input.
-   * @type {?string}
+   * @type {?string[]}
    */
   input = null
 
@@ -202,20 +207,29 @@ export class WACZ {
         throw new Error('`input` was not provided.')
       }
 
-      this.input = String(options.input).trim()
-      const results = glob.sync(this.input)
+      this.input = []
 
-      for (const file of results) {
-        const filename = basename(file).toLowerCase()
-
-        if (!filename.endsWith('.warc') && !filename.endsWith('.warc.gz')) {
-          this.log.trace(`${file} found ignored.`)
-          continue
-        }
-
-        this.WARCs.push(file)
+      // `input` can be a string or an array of strings
+      if (options.input.constructor.name === 'String') {
+        this.input.push(options.input)
+      } else if (options.input.constructor.name === 'Array') {
+        this.input.push(...options.input.map(path => String(path).trim()))
+      } else {
+        throw new Error('`input` must be a string or an array.')
       }
 
+      for (const path of this.input) {
+        for (const file of glob.sync(path)) {
+          const filename = basename(file).toLowerCase()
+
+          if (!filename.endsWith('.warc') && !filename.endsWith('.warc.gz')) {
+            this.log.trace(`${file} found ignored.`)
+            continue
+          }
+
+          this.WARCs.push(file)
+        }
+      }
       if (this.WARCs.length < 1) {
         throw new Error('No WARC found.')
       }
@@ -307,10 +321,11 @@ export class WACZ {
 
   /**
    * Convenience method: runs all the processing steps from start to finish.
+   * @param {boolean} [verbose=true] - If `true`, will log step-by-step progress.
    * @returns {Promise<void>}
    */
   process = async (verbose = true) => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     const info = verbose ? this.log.info : () => {}
 
@@ -348,25 +363,37 @@ export class WACZ {
   }
 
   /**
-   * Checks if `this.ready` is true, throws otherwise.
+   * Checks:
+   * - If `this.ready` is true, throws otherwise.
+   * - If `this.consumed` is false, throws otherwise.
    * @returns {void}
    */
-  readyStateCheck = () => {
+  stateCheck = () => {
     if (this.ready !== true) {
       throw new Error('Not enough information was provided for processing to start.')
+    }
+
+    if (this.consumed === true) {
+      throw new Error('This instance has been consumed and may only be kept in memory for reference purposes.')
     }
   }
 
   /**
    * Creates an Archiver instance which streams out to `this.output`.
+   * Will only run if needed (can be called multiple times).
    * @returns {void}
    */
   initOutputStreams = () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
-    this.outputStream = createWriteStream(this.output)
-    this.archiveStream = new Archiver('zip', { store: true })
-    this.archiveStream.pipe(this.outputStream)
+    if (!this.outputStream) {
+      this.outputStream = createWriteStream(this.output)
+    }
+
+    if (!this.archiveStream && this.outputStream) {
+      this.archiveStream = new Archiver('zip', { store: true })
+      this.archiveStream.pipe(this.outputStream)
+    }
   }
 
   /**
@@ -374,7 +401,7 @@ export class WACZ {
    * @returns {void}
    */
   initWorkerPool = () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     this.indexWARCPool = new Piscina({
       filename: new URL('./workers/indexWARC.js', import.meta.url).href
@@ -388,7 +415,7 @@ export class WACZ {
    * @returns {Promise<void>} - From Promise.all.
    */
   indexWARCs = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     return await Promise.all(this.WARCs.map(async filename => {
       const results = await this.indexWARCPool.run({ filename, detectPages: this.detectPages })
@@ -408,7 +435,7 @@ export class WACZ {
    * @returns {void}
    */
   harvestArraysFromTrees = () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     this.cdxArray = this.cdxTree.keysArray()
     this.cdxTree.clear()
@@ -422,9 +449,9 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   writeIndexesToZip = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
-    const { cdxArray, idxArray, archiveStream, resources, log } = this
+    const { cdxArray, idxArray, addFileToZip, log } = this
 
     let cdx = Buffer.alloc(0)
     let idxOffset = 0 // Used to for IDX metadata (IDX / CDX cross reference)
@@ -469,15 +496,8 @@ export class WACZ {
         cdx = Buffer.concat([cdx, cdxSliceGzipped])
       }
 
-      // Write index.cdx.gz to ZIP and record datapackage info
-      archiveStream.append(cdx, { name: 'indexes/index.cdx.gz' })
-
-      resources.push({
-        name: 'index.cdx.gz',
-        path: 'indexes/index.cdx.gz',
-        hash: await this.sha256(cdx),
-        bytes: cdx.byteLength
-      })
+      // Add to ZIP
+      await addFileToZip(cdx, 'indexes/index.cdx.gz')
     } catch (err) {
       log.trace(err)
       throw new Error('An error occurred while generating "indexes/index.cdx.gz".')
@@ -485,23 +505,13 @@ export class WACZ {
 
     // index.idx
     try {
-      // Write index.idx to ZIP and record datapackage info
       let idx = '!meta 0 {"format": "cdxj-gzip-1.0", "filename": "index.cdx.gz"}\n'
 
       for (const entry of idxArray) {
         idx += `${entry}`
       }
 
-      archiveStream.append(idx, { name: 'indexes/index.idx' })
-
-      const idxBuffer = Buffer.from(idx)
-
-      resources.push({
-        name: 'index.idx',
-        path: 'indexes/index.idx',
-        hash: await this.sha256(idxBuffer),
-        bytes: idxBuffer.byteLength
-      })
+      await addFileToZip(Buffer.from(idx), 'indexes/index.idx')
     } catch (err) {
       log.trace(err)
       throw new Error('An error occurred while generating "indexes/index.idx".')
@@ -513,9 +523,9 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   writePagesToZip = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
-    const { pagesArray, archiveStream, resources, log } = this
+    const { pagesArray, log, addFileToZip } = this
 
     try {
       let pagesJSONL = '{"format": "json-pages-1.0", "id": "pages", "title": "All Pages"}\n'
@@ -524,16 +534,7 @@ export class WACZ {
         pagesJSONL += `${JSON.stringify(page)}\n`
       }
 
-      archiveStream.append(pagesJSONL, { name: 'pages/pages.jsonl' })
-
-      const pagesJSONLBuffer = Buffer.from(pagesJSONL)
-
-      resources.push({
-        name: 'pages.jsonl',
-        path: 'pages/pages.jsonl',
-        hash: await this.sha256(pagesJSONLBuffer),
-        bytes: pagesJSONLBuffer.byteLength
-      })
+      await addFileToZip(Buffer.from(pagesJSONL), 'pages/pages.jsonl')
     } catch (err) {
       log.trace(err)
       throw new Error('An error occurred while generating "pages/pages.jsonl".')
@@ -545,22 +546,13 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   writeWARCsToZip = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
-    const { WARCs, archiveStream, resources, log } = this
+    const { WARCs, addFileToZip, log } = this
 
     for (const warc of WARCs) {
       try {
-        const filename = basename(warc)
-        const stream = createReadStream(warc)
-        archiveStream.append(stream, { name: `archive/${filename}` })
-
-        resources.push({
-          name: filename,
-          path: `archive/${filename}`,
-          hash: await this.sha256(warc),
-          bytes: (await fs.stat(warc)).size
-        })
+        await addFileToZip(warc, `archive/${basename(warc)}`)
       } catch (err) {
         log.trace(err)
         throw new Error(`An error occurred while writing "${warc}" to ZIP.`)
@@ -573,9 +565,9 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   writeDatapackageToZip = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
-    const { archiveStream, resources, log } = this
+    const { addFileToZip, resources, log } = this
 
     this.datapackageDate = new Date().toISOString()
 
@@ -602,17 +594,8 @@ export class WACZ {
         datapackage.extras = this.datapackageExtras
       }
 
-      const serializedDatapackage = JSON.stringify(datapackage, null, 2)
-      const binaryDatapackage = Buffer.from(serializedDatapackage)
-
-      archiveStream.append(serializedDatapackage, { name: 'datapackage.json' })
-
-      resources.push({
-        name: 'datapackage.json',
-        path: 'datapackage.json',
-        hash: await this.sha256(binaryDatapackage),
-        bytes: binaryDatapackage.byteLength
-      })
+      const output = Buffer.from(JSON.stringify(datapackage, null, 2))
+      await addFileToZip(output, 'datapackage.json')
     } catch (err) {
       log.trace(err)
       throw new Error('An error occurred while generating "datapackage.json".')
@@ -624,7 +607,7 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   writeDatapackageDigestToZip = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     const { archiveStream, resources, log, signingUrl } = this
 
@@ -662,7 +645,7 @@ export class WACZ {
    * @returns {Promise<object>} - Signature to data to be appended to the datapackage digest.
    */
   requestSignature = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     const { resources, log, datapackageDate, signingUrl, signingToken } = this
     const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
@@ -718,7 +701,7 @@ export class WACZ {
    * @returns {Promise<void>}
    */
   finalize = async () => {
-    this.readyStateCheck()
+    this.stateCheck()
 
     // "Pinky Promise pattern"
     let closeStreamResolve = null
@@ -733,6 +716,8 @@ export class WACZ {
 
     this.archiveStream.finalize()
     await closeStreamPromise // Wait for file stream to close
+
+    this.consumed = true
   }
 
   /**
@@ -745,7 +730,7 @@ export class WACZ {
    * @returns {WACZPage}
    */
   addPage = (url, title = null, ts = null) => {
-    this.readyStateCheck()
+    this.stateCheck()
     this.detectPages = false
 
     /** @type {WACZPage} */
@@ -776,6 +761,38 @@ export class WACZ {
   }
 
   /**
+   * Adds a file to the output ZIP stream.
+   * Automatically keeps trace of file in `this.resources` so it can be referenced in datapackage.json.
+   * Must be called before `writeDatapackageToZip()`.
+   * @param {string|Uint8Array} file - File to be added. Can be a path or a chunk of data.
+   * @param {string} destination - In-zip path and filename of this file. I.E: "extras/thing.zip"
+   * @returns {Promise<void>}
+   */
+  addFileToZip = async (file, destination) => {
+    this.initOutputStreams() // Initializes output streams if needed.
+    const { archiveStream, resources, sha256, byteLength } = this
+
+    destination = String(destination).trim()
+
+    // If path
+    if (file.constructor.name === 'String') {
+      await fs.access(file)
+      await archiveStream.file(file, { name: destination })
+    // If data-chunk
+    } else {
+      await archiveStream.append(file, { name: destination })
+    }
+
+    // Push to resources list
+    resources.push({
+      name: basename(destination),
+      path: destination,
+      hash: await sha256(file),
+      bytes: await byteLength(file)
+    })
+  }
+
+  /**
    * Utility for gzipping data chunks.
    * @param {Uint8Array} chunk
    * @returns {Uint8Array}
@@ -784,6 +801,19 @@ export class WACZ {
     const output = new Deflate({ gzip: true })
     output.push(chunk, true)
     return output.result
+  }
+
+  /**
+   * Computes the byte length a given file or chunk of data.
+   * @param {string|Uint8Array} file - Path to a file OR Buffer / Uint8Array.
+   * @returns {Promise<number>}
+   */
+  byteLength = async (file) => {
+    if (file instanceof Uint8Array) {
+      return file.byteLength
+    }
+
+    return (await fs.stat(file)).size
   }
 
   /**

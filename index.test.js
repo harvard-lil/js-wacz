@@ -44,6 +44,14 @@ test('WACZ constructor throws if options.input is absent or invalid.', async (_t
   }
 })
 
+test('WACZ constructor accepts options.input if it is either a string or array.', async (_t) => {
+  const scenarios = [FIXTURE_INPUT, [FIXTURE_INPUT]]
+
+  for (const input of scenarios) {
+    assert.doesNotThrow(() => new WACZ({ input }))
+  }
+})
+
 test('WACZ constructor throws if options.output is invalid.', async (_t) => {
   const scenarios = ['foo', true, {}, Buffer.alloc(0), 12, () => {}, './', 'test.zip']
 
@@ -188,6 +196,13 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   }
 
   const archive = new WACZ(options)
+
+  // Test adding extra files
+  await archive.addFileToZip(
+    Buffer.from('HELLO WORLD'),
+    'hello.txt'
+  )
+
   await archive.process()
 
   //
@@ -203,15 +218,26 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   assert(await zip.entryData('indexes/index.cdx.gz'))
 
   //
-  // There should be as many .warc.gz files as there are in the fixtures folder
+  // `hello.txt` should be present
+  //
+  assert(await zip.entryData('hello.txt'))
+
+  //
+  // There should be as many .warc.gz files as there are in the fixtures folder.
   //
   let warcCount = 0
 
   for (const entry of Object.values(zipEntries)) {
     if (entry.name.endsWith('.warc.gz')) {
       warcCount += 1
+
+      // Loosely check that it is indeed a .warc.gz
+      const data = await zip.entryData(entry.name)
+      assert.equal(data[0], 0x1f)
+      assert.equal(data[1], 0x8b)
     }
   }
+
   assert.equal(warcCount, glob.sync(FIXTURE_INPUT).length)
 
   //
