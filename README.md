@@ -8,7 +8,7 @@ It can be used to combine a set of `.warc` / `.warc.gz` files into a single `.wa
 
 **... programmatically (Node.js):**
 ```javascript
-import { WACZ } from "js-wacz"
+import { WACZ } from '@harvard-lil/js-wacz'
 
 const archive = new WACZ({ 
   input: 'collection/*.warc.gz', 
@@ -175,7 +175,7 @@ js-wacz -f "collection/*.warc.gz" --log-level trace
 
 **Example: Creating a signed WACZ programmatically**
 ```javascript
-import { WACZ } from 'js-wacz'
+import { WACZ } from '@harvard-lil/js-wacz'
 
 try {
   const archive = new WACZ({ 
