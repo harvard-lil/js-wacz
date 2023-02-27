@@ -1,7 +1,7 @@
 /**
  * Options that can be provided to the WACZ class.
  * @typedef {Object} WACZOptions
- * @property {string} input - Required. Path to input .warc or .warc.gz file(s). Can be a glob.
+ * @property {string|string[]} input - Required. Path(s) to input .warc or .warc.gz file(s). Glob-compatible.
  * @property {string} output - Required. Path to output .wacz file. Will default to PWD + `archive.wacz` if not provided.
  * @property {boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records.
  * @property {?string} url - If set, will be added to datapackage.json as `mainPageUrl`.
