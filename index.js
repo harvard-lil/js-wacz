@@ -758,6 +758,8 @@ export class WACZ {
     }
 
     this.pagesTree.setIfNotPresent(page.url, page)
+
+    return page
   }
 
   /**
@@ -766,7 +768,7 @@ export class WACZ {
    * Must be called before `writeDatapackageToZip()`.
    * @param {string|Uint8Array} file - File to be added. Can be a path or a chunk of data.
    * @param {string} destination - In-zip path and filename of this file. I.E: "extras/thing.zip"
-   * @returns {Promise<void>}
+   * @returns {Promise<WACZDatapackageResource>} - What was added to `this.resources`
    */
   addFileToZip = async (file, destination) => {
     this.initOutputStreams() // Initializes output streams if needed.
@@ -783,13 +785,17 @@ export class WACZ {
       await archiveStream.append(file, { name: destination })
     }
 
-    // Push to resources list
-    resources.push({
+    // Push to resources list and return ut
+    const resource = {
       name: basename(destination),
       path: destination,
       hash: await sha256(file),
       bytes: await byteLength(file)
-    })
+    }
+
+    resources.push(resource)
+
+    return resource
   }
 
   /**
