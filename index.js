@@ -329,6 +329,8 @@ export class WACZ {
 
     const info = verbose ? this.log.info : () => {}
 
+    info(`${this.WARCs.length} WARC(s) to process.`)
+
     info(`Initializing output stream at: ${this.output}`)
     this.initOutputStreams()
 
@@ -473,7 +475,7 @@ export class WACZ {
           upperBound = cdxArray.length - 1
         }
 
-        cdxSlice = cdxArray.slice(i, upperBound).join('')
+        cdxSlice = cdxArray.slice(i, upperBound + 1).join('')
 
         // Deflate said slice
         cdxSliceGzipped = this.gzip(cdxSlice)
