@@ -35,7 +35,7 @@ jobs:
     - name: Run signer
       run: |
         npm run dev-signer
-        sleep 15
+        sleep 5
 
     - name: Run tests
       run: npm run test
