@@ -20,7 +20,8 @@
     "js-wacz": "node cli.js",
     "lint": "standard",
     "lint-autofix": "standard --fix",
-    "test": "node --test"
+    "test": "node --test",
+    "dev-signer": "cd .services/signer; bash ./run.sh &"
   },
   "repository": {
     "type": "git",
