@@ -1,6 +1,6 @@
 {
   "name": "@harvard-lil/js-wacz",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "JavaScript module and CLI tool for working with web archive data using the WACZ format specification.",
   "main": "index.js",
   "type": "module",
@@ -10,6 +10,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "files": [
+    "*.js",
+    "!*.test.js",
+    "!tmp.js",
+    "*/.keep"
+  ],
   "scripts": {
     "js-wacz": "node cli.js",
     "lint": "standard",

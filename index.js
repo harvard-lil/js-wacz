@@ -172,7 +172,7 @@ export class WACZ {
   archiveStream = null
 
   /**
-   * @param {WACZOptions} options - See types/WACZOptions for details.
+   * @param {WACZOptions} options - See {@link WACZOptions} for details.
    */
   constructor (options = {}) {
     // Although non-blocking, options.log must be processed first

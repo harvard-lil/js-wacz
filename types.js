@@ -8,7 +8,7 @@
  * @property {?string} ts - If set, will be added to datapackage.json as `mainPageDate`. Can be any value that `Date()` can parse.
  * @property {?string} title - If set, will be added to datapackage.json as `title`.
  * @property {?string} description - If set, will be added to datapackage.json as `description`.
- * @property {string} signingUrl - If set, will be used to try and sign the resulting archive.
+ * @property {?string} signingUrl - If set, will be used to try and sign the resulting archive.
  * @property {?string} signingToken - Access token to be used in combination with `signingUrl`.
  * @property {?Object} datapackageExtras - If set, will be appended to datapackage.json under `extras`.
  * @property {?any} log - Will be used instead of the Console API for logging, if compatible (i.e: loglevel). Defaults to globalThis.console.
