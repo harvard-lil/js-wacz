@@ -33,7 +33,6 @@ js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
 - [Programmatic use](#programmatic-use)
 - [Feature parity with py-wacz](#feature-parity-with-py-wacz)
 - [Development](#development)
-- [TODOs](#todos)
 
 ---
 
@@ -251,28 +250,5 @@ These are optional, and can be added to a local `.env` file which will be automa
 | `TEST_SIGNING_URL` | Url of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files. | 
 | `TEST_SIGNING_TOKEN` | If required by the server at `TEST_SIGNING_URL`, an authentication token. |
 
-
 [👆 Back to summary](#summary)
 
----
-
-## TODOs
-
-> To be prioritized and converted to GitHub issues 🚧
-
-### Feature Parity
-- [ ] **CLI & API:** `create` - Full-text index generation ([--text](https://github.com/webrecorder/py-wacz#-t---text-1))
-- [ ] **CLI & API:** `create` - Hashing algorithm selection ([--hash-type](https://github.com/webrecorder/py-wacz#--hash-type))
-- [ ] **CLI & API:** `validate` command ([WACZ integrity and signature validation](https://github.com/webrecorder/py-wacz#validate)).
-
-### Other
-- [ ] **Simple CDX:** Use simple CDX file if IDX file would only contain 1 entry.
-- [ ] **Platform agnostic**: This project currently relies on Node.js-specific APIs and would benefit to become more interoperable _(Deno, Bun, Browser ...)_
-- [ ] **Buffers as input and output:** This project currently allows for interacting with files stored on disk. 
-  - [ ] The library should also be able to work with in-memory input and output (`Buffer`, `ArrayBuffer` ...).
-  - [ ] The CLI should accept stdin as an input for `.warc`.
-
-### Future features
-- [ ] **CLI & API:** `read` - Feature for parsing WACZ, either locally or remotely via range requests.
-
-[👆 Back to summary](#summary)
