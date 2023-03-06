@@ -250,5 +250,25 @@ These are optional, and can be added to a local `.env` file which will be automa
 | `TEST_SIGNING_URL` | URL of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files. To run such an endpoint locally, use `npm run dev-signer` and set this variable to `http://127.0.0.1:5000/sign`; see [.services/signer](.services/signer).|
 | `TEST_SIGNING_TOKEN` | If required by the server at `TEST_SIGNING_URL`, an authentication token. |
 
+
+### Available CLI
+
+```bash
+# Runs test suite
+npm run test
+
+# Runs linter
+npm run lint
+
+# Runs linter and attempts to automatically fix issues
+npm run lint-autofix
+
+# Step-by-step NPM publishing helper
+npm run publish-util
+
+# Runs a local instance of wacz-signer for test purposes (see "Testing" section)
+npm run dev-signer
+```
+
 [👆 Back to summary](#summary)
 
