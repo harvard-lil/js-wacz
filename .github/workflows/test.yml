@@ -33,7 +33,9 @@ jobs:
       run: npm install
 
     - name: Run signer
-      run: npm run dev-signer
+      run: |
+        npm run dev-signer
+        sleep 10
 
     - name: Run tests
       run: npm run test
