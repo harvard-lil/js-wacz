@@ -21,7 +21,7 @@
     "lint": "standard",
     "lint-autofix": "standard --fix",
     "test": "node --test",
-    "dev-signer": "cd .services/signer; bash ./run.sh &",
+    "dev-signer": "cd .services/signer; bash ./run.sh",
     "publish-util": "cd .services/publish; bash ./run.sh"
   },
   "repository": {

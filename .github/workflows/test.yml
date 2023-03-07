@@ -34,7 +34,8 @@ jobs:
 
     - name: Run signer
       run: |
-        npm run dev-signer
+        cd .services/signer/
+        bash ./run.sh &
         sleep 5
 
     - name: Run tests

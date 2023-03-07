@@ -6,6 +6,7 @@ directory, run
 bash ./run.sh
 ```
 
-You can then run `npm run test`, setting
+(An equivalent, from the top level of this repo, is `npm run
+dev-signer`.) You can then run `npm run test`, setting
 `TEST_SIGNING_URL=http://localhost:5000/sign` on the command line or
 in `.env`.
