@@ -21,8 +21,8 @@
     "lint": "standard",
     "lint-autofix": "standard --fix",
     "test": "node --test",
-    "dev-signer": "cd .services/signer; bash ./run.sh",
-    "publish-util": "cd .services/publish; bash ./run.sh"
+    "dev-signer": "echo 'TEST_SIGNING_URL=http://localhost:5000/sign' > .env ; cd .services/signer ; bash ./run.sh",
+    "publish-util": "cd .services/publish ; bash ./run.sh"
   },
   "repository": {
     "type": "git",

@@ -34,6 +34,7 @@ jobs:
 
     - name: Run signer
       run: |
+        echo 'TEST_SIGNING_URL=http://localhost:5000/sign' > .env
         cd .services/signer/
         bash ./run.sh &
         sleep 5
