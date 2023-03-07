@@ -4,6 +4,7 @@ node_modules
 tmp/
 tmp.js
 .env
-env
+.venv/
+env/
 *.pem
 __pycache__/
