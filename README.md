@@ -247,7 +247,7 @@ These are optional, and can be added to a local `.env` file which will be automa
 
 | Name | Description |
 | --- | --- |
-| `TEST_SIGNING_URL` | URL of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files. To run such an endpoint locally, use `npm run dev-signer`, which will overwrite `.env` and set this variable to `http://localhost:5000/sign`; see [.services/signer](.services/signer).|
+| `TEST_SIGNING_URL` | URL of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files.<br>To run such an endpoint locally, use `npm run dev-signer`, which will overwrite `.env` and set this variable to `http://localhost:5000/sign`; see [.services/signer](.services/signer).|
 | `TEST_SIGNING_TOKEN` | If required by the server at `TEST_SIGNING_URL`, an authentication token. |
 
 
