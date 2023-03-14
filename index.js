@@ -343,22 +343,25 @@ export class WACZ {
     info('Harvesting sorted indexes from trees.')
     this.harvestArraysFromTrees()
 
-    info('Writing CDX to ZIP.')
+    info('Writing CDX to WACZ.')
     await this.writeIndexesToZip()
 
-    info('Writing pages.jsonl to ZIP.')
+    info('Writing pages.jsonl to WACZ.')
     await this.writePagesToZip()
 
-    info('Writing WARCs to ZIP.')
+    info('Writing WARCs to WACZ.')
     await this.writeWARCsToZip()
 
-    info('Writing datapackage.json to ZIP.')
+    info('Writing datapackage.json to WACZ.')
     await this.writeDatapackageToZip()
 
-    info('Writing datapackage-digest.json to ZIP.')
+    info('Writing datapackage-digest.json to WACZ.')
+    if (this.signingUrl) {
+      info(`(Will request signature from: ${this.signingUrl})`)
+    }
     await this.writeDatapackageDigestToZip()
 
-    info('Finalizing ZIP.')
+    info('Finalizing WACZ.')
     await this.finalize()
 
     info('Done.')
