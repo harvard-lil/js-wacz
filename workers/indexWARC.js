@@ -41,10 +41,6 @@ export default async (options = {}) => {
   const stream = createReadStream(filename)
 
   for await (const { cdx, record } of indexer.iterIndex([{ reader: stream, filename: basename(filename) }])) {
-    if (!indexer.filterRecord(record)) {
-      continue
-    }
-
     //
     // CDXJ processing
     //
