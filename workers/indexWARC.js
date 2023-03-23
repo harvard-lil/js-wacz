@@ -48,7 +48,6 @@ export default async (options = {}) => {
     //
     // CDXJ processing
     //
-    console.log(cdx)
     const cdxj = indexer.serializeCDXJ(cdx)
 
     if (cdxj) {
