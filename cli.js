@@ -19,7 +19,7 @@ const program = new Command()
 program
   .name(PACKAGE_INFO.name)
   .description(PACKAGE_INFO.description)
-  .version(PACKAGE_INFO.version)
+  .version(PACKAGE_INFO.version, '-v, --version')
 
 /**
  * `create` command

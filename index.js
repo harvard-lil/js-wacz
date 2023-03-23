@@ -184,7 +184,7 @@ export class WACZ {
           typeof this.log.warn !== 'function' ||
           typeof this.log.error !== 'function'
       ) {
-        throw new Error('"logger" must be compatible with the Console API.')
+        throw new Error('"log" must be compatible with the Console API.')
       }
     }
 
@@ -329,42 +329,42 @@ export class WACZ {
 
     const info = verbose ? this.log.info : () => {}
 
-    info(`${this.WARCs.length} WARC(s) to process.`)
+    info(`${this.WARCs.length} WARC(s) to process`)
 
     info(`Initializing output stream at: ${this.output}`)
     this.initOutputStreams()
 
-    info('Initializing indexer.')
+    info('Initializing indexer')
     this.initWorkerPool()
 
-    info('Indexing WARCS.')
+    info('Indexing WARCS')
     await this.indexWARCs()
 
-    info('Harvesting sorted indexes from trees.')
+    info('Harvesting sorted indexes from trees')
     this.harvestArraysFromTrees()
 
-    info('Writing CDX to WACZ.')
+    info('Writing CDX to WACZ')
     await this.writeIndexesToZip()
 
-    info('Writing pages.jsonl to WACZ.')
+    info('Writing pages.jsonl to WACZ')
     await this.writePagesToZip()
 
-    info('Writing WARCs to WACZ.')
+    info('Writing WARCs to WACZ')
     await this.writeWARCsToZip()
 
-    info('Writing datapackage.json to WACZ.')
+    info('Writing datapackage.json to WACZ')
     await this.writeDatapackageToZip()
 
-    info('Writing datapackage-digest.json to WACZ.')
+    info('Writing datapackage-digest.json to WACZ')
     if (this.signingUrl) {
       info(`(Will request signature from: ${this.signingUrl})`)
     }
     await this.writeDatapackageDigestToZip()
 
-    info('Finalizing WACZ.')
+    info('Finalizing WACZ')
     await this.finalize()
 
-    info('Done.')
+    info('WACZ was finalized')
   }
 
   /**
