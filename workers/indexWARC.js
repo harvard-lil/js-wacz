@@ -41,7 +41,7 @@ export default async (options = {}) => {
   const stream = createReadStream(filename)
 
   for await (const { cdx, record } of indexer.iterIndex([{ reader: stream, filename: basename(filename) }])) {
-    if (!indexer.filterRecord(record) || cdx?.mime === 'application/warc-fields') {
+    if (!indexer.filterRecord(record)) {
       continue
     }
 
