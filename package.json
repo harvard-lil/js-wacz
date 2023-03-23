@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "bin": {
-    "js-wacz": "./cli.js"
+    "js-wacz": "./bin/cli.js"
   },
   "engines": {
     "node": ">=18.0.0"

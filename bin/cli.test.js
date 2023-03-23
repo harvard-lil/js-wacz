@@ -7,14 +7,14 @@ import StreamZip from 'node-stream-zip'
 
 import { execSync } from 'node:child_process'
 
-import { FIXTURES_PATH } from './constants.js'
+import { FIXTURES_PATH } from '../constants.js'
 
 // TODO: Actual tests CLI test suite.
 // For this very first version of this package, a decision was made to focus on tests of the underlying library.
 test('Invoke "create" command and check that a WACZ was created.', async (_t) => {
   const output = 'tmp.wacz'
 
-  let command = 'node cli create '
+  let command = 'node bin/cli create '
   command += `--file "${FIXTURES_PATH}${sep}*.warc.gz" `
   command += `--output ${output} `
 
