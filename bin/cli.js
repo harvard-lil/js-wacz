@@ -7,8 +7,8 @@ import log from 'loglevel'
 import logPrefix from 'loglevel-plugin-prefix'
 import { Command } from 'commander'
 
-import { WACZ } from './index.js'
-import { PACKAGE_INFO, LOGGING_COLORS } from './constants.js'
+import { WACZ } from '../index.js'
+import { PACKAGE_INFO, LOGGING_COLORS } from '../constants.js'
 
 const program = new Command()
 
@@ -19,7 +19,7 @@ const program = new Command()
 program
   .name(PACKAGE_INFO.name)
   .description(PACKAGE_INFO.description)
-  .version(PACKAGE_INFO.version)
+  .version(PACKAGE_INFO.version, '-v, --version')
 
 /**
  * `create` command
