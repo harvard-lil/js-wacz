@@ -466,6 +466,7 @@ export class WACZ {
     //
     // Simple `index.cdx` if there is less than ZIP_NUM_SHARED_INDEX_LIMIT entries in CDX.
     //
+
     // index.cdx
     if (cdxArray.length < ZIP_NUM_SHARED_INDEX_LIMIT) {
       try {
@@ -484,6 +485,7 @@ export class WACZ {
     //
     // Use ZipNum Shared index for large CDXes (`index.cdx.gz` + `index.idx`)
     //
+
     // index.cdx.gz
     try {
       // Process CDX entries by group of ZIP_NUM_SHARED_INDEX_LIMIT for ZipNum Shared Indexing.
@@ -524,7 +526,6 @@ export class WACZ {
         cdx = Buffer.concat([cdx, cdxSliceGzipped])
       }
 
-      // Add to ZIP
       await addFileToZip(cdx, 'indexes/index.cdx.gz')
     } catch (err) {
       log.trace(err)
