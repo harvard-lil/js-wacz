@@ -63,10 +63,10 @@ export default async (options = {}) => {
     const targetURI = record.warcHeader('WARC-Target-URI')
     const warcDate = record.warcHeader('WARC-Date')
 
-    // Eligible candidates: text/html response with success status code, target URI and date
+    // Eligible candidates: text/html response with a success status code, target URI and date
     if (
       warcType !== 'response' ||
-      statusCode > 299 ||
+      statusCode !== 200 ||
       !contentType ||
       !contentType.startsWith('text/html') ||
       !targetURI ||
@@ -78,7 +78,17 @@ export default async (options = {}) => {
     // Access content body and try to find page title, if any.
     try {
       const body = await record.contentText()
+
+      if (!body) {
+        continue
+      }
+
       const html = parseHTML(body)
+
+      if (!html || html.querySelectorAll?.('body > *')?.length < 1) {
+        continue
+      }
+
       const title = html?.querySelector('title')?.textContent
 
       output.pages.push({

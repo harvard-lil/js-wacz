@@ -214,8 +214,8 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   //
   // Indexes should be present
   //
-  assert(await zip.entryData('indexes/index.idx'))
-  assert(await zip.entryData('indexes/index.cdx.gz'))
+  // NOTE: A test for the ZipNum Shared Index feature would require additional / larger fixtures.
+  assert(await zip.entryData('indexes/index.cdx'))
 
   //
   // `hello.txt` should be present
