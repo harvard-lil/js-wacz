@@ -85,7 +85,7 @@ export default async (options = {}) => {
 
       const html = parseHTML(body)
 
-      if (!html || html?.querySelectorAll('body > *').length < 1) {
+      if (!html || html.querySelectorAll?.('body > *')?.length < 1) {
         continue
       }
 
