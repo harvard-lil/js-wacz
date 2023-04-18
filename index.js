@@ -450,7 +450,9 @@ export class WACZ {
   }
 
   /**
-   * Creates `index.cdx.gz` and `index.idx` out of `this.cdxArray` and writes them to ZIP.
+   * Creates index files out of `this.cdxArray` and writes them to ZIP.
+   * Uses Zip Num Shared Index if there are more than ZIP_NUM_SHARED_INDEX_LIMIT entries in CDX:
+   * - This will result in two files (index.cdx.gz, index.idx), instead of a simple index.cdx.
    * @returns {Promise<void>}
    */
   writeIndexesToZip = async () => {
@@ -461,6 +463,27 @@ export class WACZ {
     let cdx = Buffer.alloc(0)
     let idxOffset = 0 // Used to for IDX metadata (IDX / CDX cross reference)
 
+    //
+    // Simple `index.cdx` if there is less than ZIP_NUM_SHARED_INDEX_LIMIT entries in CDX.
+    //
+    // index.cdx
+    if (cdxArray.length < ZIP_NUM_SHARED_INDEX_LIMIT) {
+      try {
+        for (const entry of cdxArray) {
+          cdx = Buffer.concat([cdx, Buffer.from(entry)])
+        }
+
+        await addFileToZip(cdx, 'indexes/index.cdx')
+        return
+      } catch (err) {
+        log.trace(err)
+        throw new Error('An error occurred while generating "indexes/index.cdx".')
+      }
+    }
+
+    //
+    // Use ZipNum Shared index for large CDXes (`index.cdx.gz` + `index.idx`)
+    //
     // index.cdx.gz
     try {
       // Process CDX entries by group of ZIP_NUM_SHARED_INDEX_LIMIT for ZipNum Shared Indexing.
