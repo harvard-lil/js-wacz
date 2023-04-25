@@ -604,6 +604,7 @@ export class WACZ {
       const datapackage = {
         created: this.datapackageDate,
         wacz_version: '1.1.1',
+        profile: 'data-package',
         software: `${PACKAGE_INFO.name} ${PACKAGE_INFO.version}`,
         resources
       }

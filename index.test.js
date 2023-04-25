@@ -246,6 +246,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   const datapackage = JSON.parse(await zip.entryData('datapackage.json'))
 
   assert.equal(datapackage.title, options.title)
+  assert.equal(datapackage.profile, 'data-package')
   assert.equal(datapackage.description, options.description)
   assert.equal(datapackage.mainPageUrl, options.url)
   assert.equal(datapackage.mainPageDate, new Date(options.ts).toISOString())
