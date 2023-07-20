@@ -185,7 +185,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   //
   const options = {
     input: FIXTURE_INPUT,
-    output: 'tmp.wacz',
+    output: '../tmp.wacz',
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
@@ -203,7 +203,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
     'hello.txt'
   )
 
-  await archive.process()
+  await archive.process(false)
 
   //
   // Load up resulting WACZ to check that everything worked
