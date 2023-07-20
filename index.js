@@ -223,7 +223,7 @@ export class WACZ {
           const filename = basename(file).toLowerCase()
 
           if (!filename.endsWith('.warc') && !filename.endsWith('.warc.gz')) {
-            this.log.trace(`${file} found ignored.`)
+            this.log.trace(`${file} found but ignored.`)
             continue
           }
 
