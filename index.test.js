@@ -6,7 +6,7 @@ import { sep } from 'path'
 import fs from 'fs/promises'
 
 import log from 'loglevel'
-import glob from 'glob'
+import { globSync } from 'glob'
 import StreamZip from 'node-stream-zip'
 import * as dotenv from 'dotenv'
 
@@ -238,7 +238,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
     }
   }
 
-  assert.equal(warcCount, glob.sync(FIXTURE_INPUT).length)
+  assert.equal(warcCount, globSync(FIXTURE_INPUT).length)
 
   //
   // datapackage.json should be present, valid, and hold the data we passed to it.
