@@ -6,7 +6,7 @@ import { createHash } from 'crypto'
 import { basename, sep } from 'path'
 
 import { Deflate } from 'pako'
-import glob from 'glob'
+import { globSync } from 'glob'
 import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
 import Archiver from 'archiver'
@@ -219,7 +219,7 @@ export class WACZ {
       }
 
       for (const path of this.input) {
-        for (const file of glob.sync(path)) {
+        for (const file of globSync(path)) {
           const filename = basename(file).toLowerCase()
 
           if (!filename.endsWith('.warc') && !filename.endsWith('.warc.gz')) {
