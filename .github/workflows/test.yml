@@ -36,7 +36,7 @@ jobs:
       run: |
         cd .services/signer/
         bash ./run.sh &
-        sleep 10
+        sleep 15
 
     - name: Run tests
       run: npm run test

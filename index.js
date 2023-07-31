@@ -656,7 +656,7 @@ export class WACZ {
           digest.signedData = signature
         } catch (err) {
           log.trace(err)
-          throw new Error('An error occured while signing "datapackage.json".')
+          throw new Error('An error occurred while signing "datapackage.json".')
         }
       }
 
