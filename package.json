@@ -46,7 +46,7 @@
     "piscina": "^4.0.0",
     "sorted-btree": "^1.8.1",
     "uuid": "^9.0.0",
-    "warcio": "^2.1.0"
+    "warcio": "^2.2.0"
   },
   "devDependencies": {
     "dotenv": "^16.0.3",
