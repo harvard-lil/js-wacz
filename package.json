@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/harvard-lil/js-wacz#readme",
   "dependencies": {
-    "archiver": "^5.3.1",
+    "archiver": "^6.0.0",
     "chalk": "^5.2.0",
     "commander": "^11.0.0",
     "glob": "^10.3.3",
