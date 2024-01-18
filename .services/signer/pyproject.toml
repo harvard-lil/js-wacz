@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "signer"
-version = "0.1.9"
+version = "0.2.0"
 description = ""
 authors = ["Library Innovation Lab <lil@law.harvard.edu>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<4.0"
 flask = "^2.3.2"
 wacz-signing = "^0.2.9"
 
