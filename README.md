@@ -20,7 +20,7 @@ await archive.process() // "my-collection.wacz" is ready!
 
 **... or via the command line:**
 ```bash
-js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
+js-wacz create -f "collection/*.warc.gz" -o "collection.wacz"
 ```
 
 **js-wacz** makes use of workers to process as many WARC files in parallel as the host machine can handle.
@@ -57,7 +57,7 @@ npm install -g @harvard-lil/js-wacz
 The `create` command helps combine one or multiple `.warc` or `.warc.gz` files into a single `.wacz` file.
 
 ```bash
-js-wacz -f "collection/*.warc.gz" -o "collection.wacz"
+js-wacz create -f "collection/*.warc.gz" -o "collection.wacz"
 ```
 
 **js-wacz** accepts the following options and arguments for customizing how the WACZ file is assembled.
@@ -70,12 +70,12 @@ The target can be a single file, or a glob pattern such as `folder/*.warc.gz`.
 
 ```bash
 # Single file:
-js-wacz --file archive.warc
+js-wacz create --file archive.warc
 ```
 
 ```bash
 # Collection:
-js-wacz --file "collection/*.warc"
+js-wacz create --file "collection/*.warc"
 ```
 
 **Note:** When using globs, make sure to surround the path with quotation marks.
@@ -87,7 +87,7 @@ Allows to specify where the resulting `.wacz` file should be created, and what i
 Defaults to `archive.wacz` in the current directory if not provided.
 
 ```bash
-js-wacz --file cool-beans.warc --output cool-beans.wacz
+js-wacz create --file cool-beans.warc --output cool-beans.wacz
 ```
 
 ### --pages, -p
@@ -97,7 +97,7 @@ Allows to pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1
 If not provided, **js-wacz** is going to attempt to detect pages in WARC records to build its own `pages.jsonl` index.
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --pages collection/pages.jsonl
+js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl
 ```
 
 ### --url
@@ -107,7 +107,7 @@ If provided, will be used as the [`mainPageUrl` attribute for `datapackage.json`
 Must be a valid URL.
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --url "https://lil.law.harvard.edu"
+js-wacz create -f "collection/*.warc.gz" --url "https://lil.law.harvard.edu"
 ```
 
 ### --ts
@@ -117,7 +117,7 @@ If provided, will be used as the [`mainPageDate` attribute for `datapackage.json
 Can be any value [that can be parsed by JavaScript's `Date() constructor`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date).
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --ts "2023-02-22T12:00:00.000Z"
+js-wacz create -f "collection/*.warc.gz" --ts "2023-02-22T12:00:00.000Z"
 ```
 
 ### --title
@@ -125,7 +125,7 @@ js-wacz -f "collection/*.warc.gz" --ts "2023-02-22T12:00:00.000Z"
 If provided, will be used as the [`title` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --title "My collection."
+js-wacz create -f "collection/*.warc.gz" --title "My collection."
 ```
 
 ### --desc
@@ -133,7 +133,7 @@ js-wacz -f "collection/*.warc.gz" --title "My collection."
 If provided, will be used as the [`description` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --desc "My cool collection of web archives."
+js-wacz create -f "collection/*.warc.gz" --desc "My cool collection of web archives."
 ```
 
 ### --signing-url
@@ -143,7 +143,7 @@ If provided, will be used as an API endpoint for applying [a cryptographic signa
 This endpoint is expected to be [authsign-compatible](https://github.com/webrecorder/authsign). 
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign"
+js-wacz create -f "collection/*.warc.gz" --signing-url "https://example.com/sign"
 ```
 
 ### --signing-token
@@ -151,7 +151,7 @@ js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign"
 Used conjointly with `--signing-url` if provided, in case the signing server requires authentication.
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --signing-url "https://example.com/sign" --signing-token "FOO-BAR"
+js-wacz create -f "collection/*.warc.gz" --signing-url "https://example.com/sign" --signing-token "FOO-BAR"
 ```
 
 ### --log-level
@@ -162,7 +162,7 @@ Can be used to determine how verbose **js-wacz** needs to be.
 - Default is: `info`
 
 ```bash
-js-wacz -f "collection/*.warc.gz" --log-level trace
+js-wacz create -f "collection/*.warc.gz" --log-level trace
 ```
 
 
