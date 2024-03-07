@@ -1,6 +1,8 @@
 #! /usr/bin/env node
 
 import { createReadStream } from 'fs'
+import fs from 'fs/promises'
+import { resolve } from 'path'
 import * as readline from 'node:readline/promises'
 
 import log from 'loglevel'
@@ -59,6 +61,10 @@ program.command('create')
   .option(
     '--log-level <string>',
     'Can be "silent", "trace", "debug", "info", "warn", "error"', 'info')
+  .option('--cdxj <string>',
+    'Path to a directory containing CDXJ indices to merge into final WACZ CDXJ. ' +
+    'If not provided, js-wacz will reindex from WARCS. Must be used in combination ' +
+    'with --pages, since using this option will skip reading the WARC files.')
   .action(async (name, options, command) => {
     /** @type {Object} */
     const values = options._optionValues
@@ -90,6 +96,11 @@ program.command('create')
     // `--file` is mandatory
     if (!values?.file) {
       console.error('Error: --file not provided.')
+      return
+    }
+
+    if (values?.cdxj && !values?.pages) {
+      console.error('Error: --cdxj option must be used in combination with --pages.')
       return
     }
 
@@ -130,6 +141,35 @@ program.command('create')
       } catch (err) {
         log.trace(err)
         log.error('An error occurred while processing user-provided pages.jsonl.')
+      }
+    }
+
+    // Ingest user-provided CDX files, if any.
+    if (values?.cdxj) {
+      try {
+        const dirPath = values?.cdxj
+        const cdxjFiles = await fs.readdir(dirPath)
+        const allowedExts = ['cdx', 'cdxj']
+
+        for (let i = 0; i < cdxjFiles.length; i++) {
+          const cdxjFile = resolve(dirPath, cdxjFiles[i])
+
+          const ext = cdxjFile.split('.').pop()
+          if (!allowedExts.includes(ext)) {
+            log.warn(`CDXJ: Skipping file ${cdxjFile}, not a CDXJ file`)
+            continue
+          }
+
+          log.info(`CDXJ: Reading entries from ${cdxjFile}`)
+          const rl = readline.createInterface({ input: createReadStream(cdxjFile) })
+
+          for await (const line of rl) {
+            archive.addCDXJ(line + '\n')
+          }
+        }
+      } catch (err) {
+        log.trace(err)
+        log.error('An error occurred while processing user-provided CDXJ indices.')
       }
     }
 

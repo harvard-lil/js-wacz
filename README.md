@@ -100,6 +100,14 @@ If not provided, **js-wacz** is going to attempt to detect pages in WARC records
 js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl
 ```
 
+### --cdxj
+
+Allows to pass a directory of existing CDXJ files, rather than indexing from WARCs. Must be used in combination with `--pages`.
+
+```bash
+js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl --cdxj collection/indexes/
+```
+
 ### --url
 
 If provided, will be used as the [`mainPageUrl` attribute for `datapackage.json`](https://specs.webrecorder.net/wacz/1.1.1/#datapackage-json).
