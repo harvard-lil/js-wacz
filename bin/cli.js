@@ -156,7 +156,7 @@ program.command('create')
 
           const ext = cdxjFile.split('.').pop()
           if (!allowedExts.includes(ext)) {
-            log.info(`CDXJ: Skipping file ${cdxjFile}, not a CDXJ file`)
+            log.warn(`CDXJ: Skipping file ${cdxjFile}, not a CDXJ file`)
             continue
           }
 
