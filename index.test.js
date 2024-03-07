@@ -74,6 +74,20 @@ test('WACZ constructor accounts for options.detectPages if valid.', async (_t) =
   assert.equal(archive.detectPages, false)
 })
 
+test('WACZ constructor ignores options.indexFromWARCs if invalid.', async (_t) => {
+  const scenarios = ['foo', {}, Buffer.alloc(0), 12, () => {}]
+
+  for (const indexFromWARCs of scenarios) {
+    const archive = new WACZ({ input: FIXTURE_INPUT, indexFromWARCs })
+    assert.equal(archive.indexFromWARCs, true)
+  }
+})
+
+test('WACZ constructor accounts for options.indexFromWARCs if valid.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, indexFromWARCs: false })
+  assert.equal(archive.indexFromWARCs, false)
+})
+
 test('WACZ constructor ignores options.url if invalid.', async (_t) => {
   const scenarios = ['foo', {}, Buffer.alloc(0), 12, () => {}]
 
@@ -176,6 +190,17 @@ test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) =>
 
   assert.equal(archive.detectPages, false)
   assert.equal(archive.pagesTree.length, 1)
+})
+
+test('addCDXJ adds entry to cdxTree and turns indexFromWARCs off.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT })
+  assert.equal(archive.indexFromWARCs, true)
+  assert.equal(archive.cdxTree.length, 0)
+
+  archive.addCDXJ('net,webrecorder)/ 20240307070734 {"url":"https://webrecorder.net/","mime":"text/html","status":200,"digest":"16966a2a2909825ad1d9a6f1b2f4833c8fe43428cb9920d0f974bd7b3d73c31d","length":3941,"offset":0,"filename":"rec-8bc4bd095683-20240307070734658-0.warc.gz"}')
+
+  assert.equal(archive.indexFromWARCs, false)
+  assert.equal(archive.cdxTree.length, 1)
 })
 
 // Note: if `TEST_SIGNING_URL` / `TEST_SIGNING_TOKEN` are present, this will also test the signing feature.

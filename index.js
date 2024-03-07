@@ -77,6 +77,12 @@ export class WACZ {
   detectPages = true
 
   /**
+   * From WACZOptions.indexFromWARCs.
+   * @type {boolean}
+   */
+  indexFromWARCs = true
+
+  /**
    * From WACZOptions.url.
    * @type {?string}
    */
@@ -270,6 +276,10 @@ export class WACZ {
       this.detectPages = false
     }
 
+    if (options?.indexFromWARCs === false) {
+      this.indexFromWARCs = false
+    }
+
     if (options?.url) {
       try {
         new URL(options.url) // eslint-disable-line
@@ -337,8 +347,10 @@ export class WACZ {
     info('Initializing indexer')
     this.initWorkerPool()
 
-    info('Indexing WARCS')
-    await this.indexWARCs()
+    if (this.indexFromWARCs) {
+      info('Indexing WARCS')
+      await this.indexWARCs()
+    }
 
     info('Harvesting sorted indexes from trees')
     this.harvestArraysFromTrees()
@@ -790,6 +802,19 @@ export class WACZ {
     this.pagesTree.setIfNotPresent(page.url, page)
 
     return page
+  }
+
+  /**
+   * Allows to manually add a CDJX entry to `this.cdxTree`.
+   * Calling this method automatically turns indexing from WARCS off.
+   * @param {string} cdjx - CDJX as string
+   * @returns {Promise<void>}
+   */
+  addCDXJ = (cdjx) => {
+    this.stateCheck()
+    this.indexFromWARCs = false
+
+    this.cdxTree.setIfNotPresent(cdjx, true)
   }
 
   /**
