@@ -82,7 +82,7 @@ js-wacz create --file "collection/*.warc"
 
 ### --output, -o
 
-Allows to specify where the resulting `.wacz` file should be created, and what its filename should be.
+Specify where the resulting `.wacz` file should be created, and what its filename should be.
 
 Defaults to `archive.wacz` in the current directory if not provided.
 
@@ -92,7 +92,7 @@ js-wacz create --file cool-beans.warc --output cool-beans.wacz
 
 ### --pages, -p
 
-Allows to pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) file. 
+Pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) file.
 
 If not provided, **js-wacz** is going to attempt to detect pages in WARC records to build its own `pages.jsonl` index.
 
@@ -102,7 +102,7 @@ js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl
 
 ### --cdxj
 
-Allows to pass a directory of existing CDXJ files, rather than indexing from WARCs. Must be used in combination with `--pages`.
+Pass a directory of existing CDXJ files, rather than indexing from WARCs. Must be used in combination with `--pages`.
 
 ```bash
 js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl --cdxj collection/indexes/

@@ -763,7 +763,7 @@ export class WACZ {
   }
 
   /**
-   * Allows to manually add an entry for pages.jsonl.
+   * Manually add an entry for pages.jsonl.
    * Entries will be added to `this.pagesTree`.
    * Calling this method automatically turns pages detection off.
    * @param {string} url - Must be a valid url
@@ -805,7 +805,7 @@ export class WACZ {
   }
 
   /**
-   * Allows to manually add a CDJX entry to `this.cdxTree`.
+   * Manually add a CDJX entry to `this.cdxTree`.
    * Calling this method automatically turns indexing from WARCS off.
    * @param {string} cdjx - CDJX as string
    * @returns {Promise<void>}
