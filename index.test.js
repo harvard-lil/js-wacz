@@ -358,7 +358,7 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
 
   // File in pages fixture directory not named pages.jsonl or extraPages.jsonl
   // should not exist in the WACZ.
-  assert.rejects(async() => await zip.entryData('pages/invalidName.jsonl'))
+  assert.rejects(async () => await zip.entryData('pages/invalidName.jsonl'))
 
   // pages/pages.jsonl and pages/extraPages.jsonl should have same hash as fixtures
   // they were copied from.
