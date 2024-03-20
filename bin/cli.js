@@ -42,7 +42,7 @@ program.command('create')
   .option(
     '--pages-dir <string>',
     'Path to a directory of pages files to copy into WACZ as-is. ' +
-    'Only files nomed pages.jsonl or extraPages.jsonl will be copied. ' +
+    'Only files named pages.jsonl or extraPages.jsonl will be copied. ' +
     'If neither --pages nor --pages-dir is provided, js-wacz will attempt to detect pages.')
   .option(
     '--url <string>',
