@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
-import { basename, sep } from 'path'
+import { basename, sep, resolve } from 'path'
 
 import { Deflate } from 'pako'
 import { globSync } from 'glob'
@@ -178,6 +178,12 @@ export class WACZ {
   archiveStream = null
 
   /**
+   * Path to directory of pages.jsonl files to copy as-is into WACZ.
+   * @type {?string}
+   */
+  pagesDir = null
+
+  /**
    * @param {WACZOptions} options - See {@link WACZOptions} for details.
    */
   constructor (options = {}) {
@@ -276,6 +282,11 @@ export class WACZ {
       this.detectPages = false
     }
 
+    if (options?.pagesDir) {
+      this.detectPages = false
+      this.pagesDir = String(options?.pagesDir).trim()
+    }
+
     if (options?.indexFromWARCs === false) {
       this.indexFromWARCs = false
     }
@@ -359,7 +370,11 @@ export class WACZ {
     await this.writeIndexesToZip()
 
     info('Writing pages.jsonl to WACZ')
-    await this.writePagesToZip()
+    if (!this.pagesDir) {
+      await this.writePagesToZip()
+    } else {
+      await this.copyPagesFilesToZip()
+    }
 
     info('Writing WARCs to WACZ')
     await this.writeWARCsToZip()
@@ -579,6 +594,46 @@ export class WACZ {
     } catch (err) {
       log.trace(err)
       throw new Error('An error occurred while generating "pages/pages.jsonl".')
+    }
+  }
+
+  /**
+   * Copies pages.jsonl and extraPages.jsonl files in this.pagesDir into ZIP.
+   * @returns {Promise<void>}
+   */
+  copyPagesFilesToZip = async () => {
+    this.stateCheck()
+
+    const { pagesDir, log, addFileToZip } = this
+
+    const allowedPagesFiles = ['pages.jsonl', 'extraPages.jsonl']
+
+    if (!this.pagesDir) {
+      throw new Error('Error copying pages files, no directory specified.')
+    }
+
+    try {
+      const pagesFiles = await fs.readdir(pagesDir)
+
+      for (let i = 0; i < pagesFiles.length; i++) {
+        const filename = pagesFiles[i]
+        const pagesFile = resolve(this.pagesDir, filename)
+
+        if (!allowedPagesFiles.includes(filename)) {
+          log.warn(`Pages: Skipping file ${pagesFile}, not pages.jsonl or extraPages.jsonl`)
+          continue
+        }
+
+        let destination = 'pages/pages.jsonl'
+        if (filename === 'extraPages.jsonl') {
+          destination = 'pages/extraPages.jsonl'
+        }
+
+        await addFileToZip(pagesFile, destination)
+      }
+    } catch (err) {
+      log.trace(err)
+      throw new Error('An error occurred while copying pages files into WACZ.')
     }
   }
 

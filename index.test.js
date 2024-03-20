@@ -11,7 +11,7 @@ import StreamZip from 'node-stream-zip'
 import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
-import { FIXTURES_PATH } from './constants.js'
+import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH } from './constants.js'
 import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 
 // Loads env vars from .env if provided
@@ -72,6 +72,12 @@ test('WACZ constructor ignores options.detectPages if invalid.', async (_t) => {
 test('WACZ constructor accounts for options.detectPages if valid.', async (_t) => {
   const archive = new WACZ({ input: FIXTURE_INPUT, detectPages: false })
   assert.equal(archive.detectPages, false)
+})
+
+test('WACZ constructor accounts for options.pagesDir if provided.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, pagesDir: PAGES_DIR_FIXTURES_PATH })
+  assert.equal(archive.detectPages, false)
+  assert.equal(archive.pagesDir, PAGES_DIR_FIXTURES_PATH)
 })
 
 test('WACZ constructor ignores options.indexFromWARCs if invalid.', async (_t) => {
@@ -329,6 +335,42 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   }
 
   assert.notEqual(pagesCount, 0)
+
+  // Delete temp file
+  await fs.unlink(options.output)
+})
+
+test('WACZ.process with pagesDir option creates valid WACZ with provided pages files.', async (_t) => {
+  const options = {
+    input: FIXTURE_INPUT,
+    output: '../tmp.wacz',
+    url: 'https://lil.law.harvard.edu',
+    title: 'WACZ Title',
+    description: 'WACZ Description',
+    pagesDir: PAGES_DIR_FIXTURES_PATH
+  }
+
+  const archive = new WACZ(options)
+
+  await archive.process(false)
+
+  const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
+
+  // File in pages fixture directory not named pages.jsonl or extraPages.jsonl
+  // should not exist in the WACZ.
+  assert.rejects(async() => await zip.entryData('pages/invalidName.jsonl'))
+
+  // pages/pages.jsonl and pages/extraPages.jsonl should have same hash as fixtures
+  // they were copied from.
+  const datapackage = JSON.parse(await zip.entryData('datapackage.json'))
+
+  const datapackagePages = datapackage.resources.filter(entry => entry.path === 'pages/pages.jsonl')[0]
+  const pagesFixtureHash = await archive.sha256(PAGES_FIXTURE_PATH)
+  assert.equal(datapackagePages.hash, pagesFixtureHash)
+
+  const datapackageExtraPages = datapackage.resources.filter(entry => entry.path === 'pages/extraPages.jsonl')[0]
+  const extraPagesFixtureHash = await archive.sha256(EXTRA_PAGES_FIXTURE_PATH)
+  assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
 
   // Delete temp file
   await fs.unlink(options.output)

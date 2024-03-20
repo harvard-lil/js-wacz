@@ -17,6 +17,24 @@ export const BASE_PATH = dirname(fileURLToPath(import.meta.url))
 export const FIXTURES_PATH = `${BASE_PATH}${sep}fixtures${sep}`
 
 /**
+ * Path to the fixtures folder pages sub-directory.
+ * @constant
+ */
+export const PAGES_DIR_FIXTURES_PATH = `${FIXTURES_PATH}pages${sep}`
+
+/**
+ * Path to the pages.jsonl fixture
+ * @constant
+ */
+export const PAGES_FIXTURE_PATH = `${PAGES_DIR_FIXTURES_PATH}pages.jsonl`
+
+/**
+ * Path to the extraPages.jsonl fixture
+ * @constant
+ */
+export const EXTRA_PAGES_FIXTURE_PATH = `${PAGES_DIR_FIXTURES_PATH}extraPages.jsonl`
+
+/**
  * Colors scheme for log level.
  * @constant
  */

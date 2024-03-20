@@ -38,7 +38,12 @@ program.command('create')
   .option(
     '-p --pages <string>',
     'Path to a jsonl files to be used to replace pages.jsonl. ' +
-    'If not provided, js-wacz will attempt to detect pages.')
+    'If neither --pages nor --pages-dir is provided, js-wacz will attempt to detect pages.')
+  .option(
+    '--pages-dir <string>',
+    'Path to a directory of pages files to copy into WACZ as-is. ' +
+    'Only files nomed pages.jsonl or extraPages.jsonl will be copied. ' +
+    'If neither --pages nor --pages-dir is provided, js-wacz will attempt to detect pages.')
   .option(
     '--url <string>',
     'If provided, will be used as the "main page url" in datapackage.json.')
@@ -115,6 +120,7 @@ program.command('create')
         description: values?.desc,
         signingUrl: values?.signingUrl,
         signingToken: values?.signingToken,
+        pagesDir: values?.pagesDir,
         log
       })
     } catch (err) {
