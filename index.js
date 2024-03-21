@@ -4,6 +4,7 @@ import fs from 'fs/promises'
 import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep, resolve } from 'path'
+import * as readline from 'node:readline/promises'
 
 import { Deflate } from 'pako'
 import { globSync } from 'glob'
@@ -178,7 +179,7 @@ export class WACZ {
   archiveStream = null
 
   /**
-   * Path to directory of pages.jsonl files to copy as-is into WACZ.
+   * Path to directory of pages JSONL files to copy as-is into WACZ.
    * @type {?string}
    */
   pagesDir = null
@@ -282,9 +283,9 @@ export class WACZ {
       this.detectPages = false
     }
 
-    if (options?.pagesDir) {
+    if (options?.pages) {
       this.detectPages = false
-      this.pagesDir = String(options?.pagesDir).trim()
+      this.pagesDir = String(options?.pages).trim()
     }
 
     if (options?.indexFromWARCs === false) {
@@ -606,34 +607,39 @@ export class WACZ {
 
     const { pagesDir, log, addFileToZip } = this
 
-    const allowedPagesFiles = ['pages.jsonl', 'extraPages.jsonl']
-
-    if (!this.pagesDir) {
+    if (!pagesDir) {
       throw new Error('Error copying pages files, no directory specified.')
     }
 
-    try {
-      const pagesFiles = await fs.readdir(pagesDir)
+    const pagesFiles = await fs.readdir(pagesDir)
 
-      for (let i = 0; i < pagesFiles.length; i++) {
-        const filename = pagesFiles[i]
-        const pagesFile = resolve(this.pagesDir, filename)
+    for (let i = 0; i < pagesFiles.length; i++) {
+      const filename = pagesFiles[i]
+      const filenameLower = filename.toLowerCase()
+      const pagesFile = resolve(this.pagesDir, filename)
 
-        if (!allowedPagesFiles.includes(filename)) {
-          log.warn(`Pages: Skipping file ${pagesFile}, not pages.jsonl or extraPages.jsonl`)
-          continue
-        }
-
-        let destination = 'pages/pages.jsonl'
-        if (filename === 'extraPages.jsonl') {
-          destination = 'pages/extraPages.jsonl'
-        }
-
-        await addFileToZip(pagesFile, destination)
+      if (!filenameLower.endsWith('.jsonl')) {
+        log.warn(`Pages: Skipping file ${pagesFile}, does not end with jsonl extension`)
+        continue
       }
-    } catch (err) {
-      log.trace(err)
-      throw new Error('An error occurred while copying pages files into WACZ.')
+
+      let isValidJSONL = true
+
+      // Ensure file is valid JSONL
+      const rl = readline.createInterface({ input: createReadStream(pagesFile) })
+      for await (const line of rl) {
+        try {
+          JSON.parse(line)
+        } catch (err) {
+          isValidJSONL = false
+          log.warn(`Pages: Skipping file ${pagesFile}, not valid JSONL`)
+          break
+        }
+      }
+
+      if (isValidJSONL) {
+        await addFileToZip(pagesFile, `pages/${filename}`)
+      }
     }
   }
 

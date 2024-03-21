@@ -74,8 +74,8 @@ test('WACZ constructor accounts for options.detectPages if valid.', async (_t) =
   assert.equal(archive.detectPages, false)
 })
 
-test('WACZ constructor accounts for options.pagesDir if provided.', async (_t) => {
-  const archive = new WACZ({ input: FIXTURE_INPUT, pagesDir: PAGES_DIR_FIXTURES_PATH })
+test('WACZ constructor accounts for options.pages if provided.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, pages: PAGES_DIR_FIXTURES_PATH })
   assert.equal(archive.detectPages, false)
   assert.equal(archive.pagesDir, PAGES_DIR_FIXTURES_PATH)
 })
@@ -347,7 +347,7 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pagesDir: PAGES_DIR_FIXTURES_PATH
+    pages: PAGES_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
@@ -356,9 +356,10 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
 
   const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
 
-  // File in pages fixture directory not named pages.jsonl or extraPages.jsonl
-  // should not exist in the WACZ.
-  assert.rejects(async () => await zip.entryData('pages/invalidName.jsonl'))
+  // File in pages fixture directory that are invalid JSONL or have wrong extension
+  // should not be copied into the WACZ.
+  assert.rejects(async () => await zip.entryData('pages/invalid.jsonl'))
+  assert.rejects(async () => await zip.entryData('pages/invalid.txt'))
 
   // pages/pages.jsonl and pages/extraPages.jsonl should have same hash as fixtures
   // they were copied from.
