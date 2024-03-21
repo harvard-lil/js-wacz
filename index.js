@@ -5,6 +5,7 @@ import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs
 import { createHash } from 'crypto'
 import { basename, sep, resolve } from 'path'
 import * as readline from 'node:readline/promises'
+import assert from 'node:assert/strict'
 
 import { Deflate } from 'pako'
 import { globSync } from 'glob'
@@ -627,9 +628,19 @@ export class WACZ {
 
       // Ensure file is valid JSONL
       const rl = readline.createInterface({ input: createReadStream(pagesFile) })
+      let lineIndex = 0
+
       for await (const line of rl) {
         try {
-          JSON.parse(line)
+          const page = JSON.parse(line)
+          if (lineIndex === 0) {
+            assert(page.format)
+            assert(page.id)
+          } else {
+            assert(page.url)
+            assert(page.ts)
+          }
+          lineIndex++
         } catch (err) {
           isValidJSONL = false
           log.warn(`Pages: Skipping file ${pagesFile}, not valid JSONL`)
