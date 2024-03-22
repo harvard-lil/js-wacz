@@ -643,6 +643,7 @@ export class WACZ {
           lineIndex++
         } catch (err) {
           isValidJSONL = false
+          log.trace(err)
           log.warn(`Pages: Skipping file ${pagesFile}, not valid JSONL`)
           break
         }
