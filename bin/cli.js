@@ -37,8 +37,8 @@ program.command('create')
     'Path to output .wacz file.', 'archive.wacz')
   .option(
     '-p --pages <string>',
-    'Path to a jsonl files to be used to replace pages.jsonl. ' +
-    'If not provided, js-wacz will attempt to detect pages.')
+    'Path to a directory of pages JSONL files to copy into WACZ as-is. ' +
+    'If --pages is not provided, js-wacz will attempt to detect pages.')
   .option(
     '--url <string>',
     'If provided, will be used as the "main page url" in datapackage.json.')
@@ -115,33 +115,12 @@ program.command('create')
         description: values?.desc,
         signingUrl: values?.signingUrl,
         signingToken: values?.signingToken,
+        pages: values?.pages,
         log
       })
     } catch (err) {
       log.error(`${err}`) // Show simplified report
       return
-    }
-
-    // Ingest user-provided pages.jsonl file, if any.
-    if (values?.pages) {
-      try {
-        log.info(`pages.jsonl: Reading entries from ${values?.pages}`)
-        const rl = readline.createInterface({ input: createReadStream(values.pages) })
-
-        for await (const line of rl) {
-          const page = JSON.parse(line)
-
-          if (!page?.url) {
-            continue
-          }
-
-          log.info(`Adding ${page.url}.`)
-          archive.addPage(page?.url, page?.title, page?.ts)
-        }
-      } catch (err) {
-        log.trace(err)
-        log.error('An error occurred while processing user-provided pages.jsonl.')
-      }
     }
 
     // Ingest user-provided CDX files, if any.
