@@ -600,7 +600,7 @@ export class WACZ {
   }
 
   /**
-   * Copies pages.jsonl and extraPages.jsonl files in this.pagesDir into ZIP.
+   * Copies pages.jsonl and extraPages.jsonl files in `this.pagesDir` into ZIP.
    * @returns {Promise<void>}
    */
   copyPagesFilesToZip = async () => {
@@ -619,8 +619,9 @@ export class WACZ {
       const filenameLower = filename.toLowerCase()
       const pagesFile = resolve(this.pagesDir, filename)
 
+      // Ensure file is JSONL
       if (!filenameLower.endsWith('.jsonl')) {
-        log.warn(`Pages: Skipping file ${pagesFile}, does not end with jsonl extension`)
+        log.warn(`Pages: Skipping file ${basename(pagesFile)}: does not end with jsonl extension.`)
         continue
       }
 
@@ -644,7 +645,7 @@ export class WACZ {
         } catch (err) {
           isValidJSONL = false
           log.trace(err)
-          log.warn(`Pages: Skipping file ${pagesFile}, not valid JSONL`)
+          log.warn(`Pages: Skipping file ${basename(pagesFile)}: not valid JSONL / page entry.`)
           break
         }
       }
@@ -656,7 +657,7 @@ export class WACZ {
   }
 
   /**
-   * Streams all the files listes in `this.WARCs` to the output ZIP.
+   * Streams all the files listed in `this.WARCs` to the output ZIP.
    * @returns {Promise<void>}
    */
   writeWARCsToZip = async () => {
@@ -886,7 +887,6 @@ export class WACZ {
   addCDXJ = (cdjx) => {
     this.stateCheck()
     this.indexFromWARCs = false
-
     this.cdxTree.setIfNotPresent(cdjx, true)
   }
 
