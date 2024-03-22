@@ -3,7 +3,9 @@
  * @typedef {Object} WACZOptions
  * @property {string|string[]} input - Required. Path(s) to input .warc or .warc.gz file(s). Glob-compatible.
  * @property {string} output - Required. Path to output .wacz file. Will default to PWD + `archive.wacz` if not provided.
- * @property {boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records.
+ * @property {boolean} [indexFromWARCs=true] - If true, will attempt to generate CDXJ indexes from processed WARCs. Automatically disabled if `addCDXJ()` is called.
+ * @property {boolean} [detectPages=true] - If true (default), will attempt to detect pages in WARC records. Automatically disabled if `pages` is provided or `addPages()` is called.
+ * @property {?string} pages - Path to a folder containing pages files (pages.jsonl, extraPages.jsonl ...).
  * @property {?string} url - If set, will be added to datapackage.json as `mainPageUrl`.
  * @property {?string} ts - If set, will be added to datapackage.json as `mainPageDate`. Can be any value that `Date()` can parse.
  * @property {?string} title - If set, will be added to datapackage.json as `title`.

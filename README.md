@@ -92,12 +92,13 @@ js-wacz create --file cool-beans.warc --output cool-beans.wacz
 
 ### --pages, -p
 
-Pass a specific [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) file.
+Path to a folder containing [pages.jsonl](https://specs.webrecorder.net/wacz/1.1.1/#pages-jsonl) files (`pages.jsonl`, `extraPages.jsonl` ...).
 
 If not provided, **js-wacz** is going to attempt to detect pages in WARC records to build its own `pages.jsonl` index.
 
 ```bash
-js-wacz create -f "collection/*.warc.gz" --pages collection/pages.jsonl
+# Assuming the following file exists: /collections/pages/pages.jsonl
+js-wacz create -f "collection/*.warc.gz" --pages collection/pages/
 ```
 
 ### --cdxj
