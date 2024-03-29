@@ -148,7 +148,7 @@ program.command('create')
         }
       } catch (err) {
         log.trace(err)
-        log.warning('An error occurred while processing user-provided CDXJ indices.')
+        log.warn('An error occurred while processing user-provided CDXJ indices.')
       }
     }
 
