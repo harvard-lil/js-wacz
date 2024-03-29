@@ -96,12 +96,12 @@ program.command('create')
     // `--file` is mandatory
     if (!values?.file) {
       console.error('Error: --file not provided.')
-      return
+      process.exit(1)
     }
 
     if (values?.cdxj && !values?.pages) {
       console.error('Error: --cdxj option must be used in combination with --pages.')
-      return
+      process.exit(1)
     }
 
     // Pass options to WACZ
@@ -120,7 +120,7 @@ program.command('create')
       })
     } catch (err) {
       log.error(`${err}`) // Show simplified report
-      return
+      process.exit(1)
     }
 
     // Ingest user-provided CDX files, if any.
@@ -148,7 +148,7 @@ program.command('create')
         }
       } catch (err) {
         log.trace(err)
-        log.error('An error occurred while processing user-provided CDXJ indices.')
+        log.warning('An error occurred while processing user-provided CDXJ indices.')
       }
     }
 
@@ -157,8 +157,9 @@ program.command('create')
       await archive.process()
       log.info(`WACZ file ready: ${values.output}`)
     } catch (err) {
-      log.error(err)
+      log.trace(err)
       log.error('WACZ could not be processed.')
+      process.exit(1)
     }
   })
 
