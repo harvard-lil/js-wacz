@@ -45,7 +45,7 @@
     "pako": "^2.1.0",
     "piscina": "^4.0.0",
     "sorted-btree": "^1.8.1",
-    "uuid": "^9.0.0",
+    "uuid": "^10.0.0",
     "warcio": "^2.2.0"
   },
   "devDependencies": {
