@@ -1,0 +1,20 @@
+{"timestamp":"2024-08-13T19:53:20.782Z","logLevel":"info","context":"general","message":"Browsertrix-Crawler 1.2.6 (with warcio.js 2.2.1)","details":{}}
+{"timestamp":"2024-08-13T19:53:20.784Z","logLevel":"info","context":"general","message":"Seeds","details":[{"url":"https://webrecorder.net/","scopeType":"prefix","include":["/^https?:\\/\\/webrecorder\\.net\\//"],"exclude":[],"allowHash":false,"depth":-1,"sitemap":null,"auth":null,"_authEncoded":null,"maxExtraHops":0,"maxDepth":1000000}]}
+{"timestamp":"2024-08-13T19:53:20.785Z","logLevel":"info","context":"general","message":"Behavior Options","details":{"message":"{\"autoplay\":true,\"autofetch\":true,\"autoscroll\":true,\"siteSpecific\":true,\"log\":\"__bx_log\",\"startEarly\":true}"}}
+{"timestamp":"2024-08-13T19:53:22.417Z","logLevel":"info","context":"worker","message":"Creating 1 workers","details":{}}
+{"timestamp":"2024-08-13T19:53:22.419Z","logLevel":"info","context":"worker","message":"Worker starting","details":{"workerid":0}}
+{"timestamp":"2024-08-13T19:53:22.654Z","logLevel":"info","context":"worker","message":"Starting page","details":{"workerid":0,"page":"https://webrecorder.net/"}}
+{"timestamp":"2024-08-13T19:53:22.655Z","logLevel":"info","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":0,"total":1,"pending":1,"failed":0,"limit":{"max":1,"hit":false},"pendingPages":["{\"seedId\":0,\"started\":\"2024-08-13T19:53:22.423Z\",\"extraHops\":0,\"url\":\"https:\\/\\/webrecorder.net\\/\",\"added\":\"2024-08-13T19:53:21.426Z\",\"depth\":0}"]}}
+{"timestamp":"2024-08-13T19:53:22.928Z","logLevel":"info","context":"general","message":"Awaiting page load","details":{"page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.176Z","logLevel":"warn","context":"general","message":"Invalid Page - URL must start with http:// or https://","details":{"url":"mailto:info@webrecorder.net","page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.190Z","logLevel":"info","context":"behavior","message":"Running behaviors","details":{"frames":1,"frameUrls":["https://webrecorder.net/"],"page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.191Z","logLevel":"info","context":"behavior","message":"Run Script Started","details":{"frameUrl":"https://webrecorder.net/","page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.200Z","logLevel":"info","context":"behaviorScript","message":"Behavior log","details":{"state":{"segments":1},"msg":"Skipping autoscroll, page seems to not be responsive to scrolling events","page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.200Z","logLevel":"info","context":"behaviorScript","message":"Behavior log","details":{"state":{"segments":1},"msg":"done!","page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.702Z","logLevel":"info","context":"behavior","message":"Run Script Finished","details":{"frameUrl":"https://webrecorder.net/","page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:25.703Z","logLevel":"info","context":"behavior","message":"Behaviors finished","details":{"finished":1,"page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:26.716Z","logLevel":"info","context":"pageStatus","message":"Page Finished","details":{"loadState":4,"page":"https://webrecorder.net/","workerid":0}}
+{"timestamp":"2024-08-13T19:53:26.734Z","logLevel":"info","context":"worker","message":"Worker done, all tasks complete","details":{"workerid":0}}
+{"timestamp":"2024-08-13T19:53:26.829Z","logLevel":"info","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":1,"total":1,"pending":0,"failed":0,"limit":{"max":1,"hit":true},"pendingPages":[]}}
+{"timestamp":"2024-08-13T19:53:26.830Z","logLevel":"info","context":"general","message":"Crawling done","details":{}}
+{"timestamp":"2024-08-13T19:53:26.831Z","logLevel":"info","context":"general","message":"Exiting, Crawl status: done","details":{}}

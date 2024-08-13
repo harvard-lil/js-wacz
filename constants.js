@@ -41,6 +41,18 @@ export const EXTRA_PAGES_FIXTURE_PATH = `${PAGES_DIR_FIXTURES_PATH}extraPages.js
 export const CDXJ_DIR_FIXTURES_PATH = `${FIXTURES_PATH}cdxj${sep}`
 
 /**
+ * Path to the fixtures folder log directory sub-directory.
+ * @constant
+ */
+export const LOG_DIR_FIXTURES_PATH = `${FIXTURES_PATH}logs${sep}`
+
+/**
+ * Path to the log.txt fixture
+ * @constant
+ */
+export const LOG_FILE_FIXTURE_PATH = `${LOG_DIR_FIXTURES_PATH}log.txt`
+
+/**
  * Colors scheme for log level.
  * @constant
  */

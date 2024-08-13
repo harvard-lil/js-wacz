@@ -11,7 +11,7 @@ import StreamZip from 'node-stream-zip'
 import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
-import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
+import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, LOG_DIR_FIXTURES_PATH, LOG_FILE_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
 import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 
 // Loads env vars from .env if provided
@@ -187,6 +187,11 @@ test('WACZ constructor accounts for options.datapackageExtras if provided.', asy
   assert.equal(archive.datapackageExtras, datapackageExtras)
 })
 
+test('WACZ constructor accounts for options.logDirectory if valid.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, logDirectory: LOG_DIR_FIXTURES_PATH })
+  assert.equal(archive.logDirectory, LOG_DIR_FIXTURES_PATH)
+})
+
 test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) => {
   const archive = new WACZ({ input: FIXTURE_INPUT })
   assert.equal(archive.detectPages, true)
@@ -347,7 +352,8 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pages: PAGES_DIR_FIXTURES_PATH
+    pages: PAGES_DIR_FIXTURES_PATH,
+    logDirectory: LOG_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
@@ -372,6 +378,11 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
   const datapackageExtraPages = datapackage.resources.filter(entry => entry.path === 'pages/extraPages.jsonl')[0]
   const extraPagesFixtureHash = await archive.sha256(EXTRA_PAGES_FIXTURE_PATH)
   assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
+
+  // log file provided in logDirectory option should have same hash as fixture
+  const datapackageLogFile = datapackage.resources.filter(entry => entry.path === 'logs/log.txt')[0]
+  const logFileFixtureHash = await archive.sha256(LOG_FILE_FIXTURE_PATH)
+  assert.equal(datapackageLogFile.hash, logFileFixtureHash)
 
   // Delete temp file
   await fs.unlink(options.output)

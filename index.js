@@ -192,6 +192,12 @@ export class WACZ {
   cdxjDir = null
 
   /**
+   * Path to directory of log files to copy into WACZ.
+   * @type {?string}
+   */
+  logDirectory = null
+
+  /**
    * @param {WACZOptions} options - See {@link WACZOptions} for details.
    */
   constructor (options = {}) {
@@ -340,6 +346,10 @@ export class WACZ {
       }
     }
 
+    if (options?.logDirectory) {
+      this.logDirectory = String(options?.logDirectory).trim()
+    }
+
     if (options?.signingToken && this.signingUrl) {
       this.signingToken = String(options.signingToken)
     }
@@ -397,6 +407,11 @@ export class WACZ {
 
     info('Writing WARCs to WACZ')
     await this.writeWARCsToZip()
+
+    if (this.logDirectory) {
+      info('Writing logs to WACZ')
+      await this.writeLogsToZip()
+    }
 
     info('Writing datapackage.json to WACZ')
     await this.writeDatapackageToZip()
@@ -723,6 +738,29 @@ export class WACZ {
       } catch (err) {
         log.trace(err)
         throw new Error(`An error occurred while writing "${warc}" to ZIP.`)
+      }
+    }
+  }
+
+  /**
+   * Streams all the files listed in `this.logDirectory` to the output ZIP.
+   * @returns {Promise<void>}
+   */
+  writeLogsToZip = async () => {
+    this.stateCheck()
+
+    const { logDirectory, addFileToZip, log } = this
+
+    const logFiles = await fs.readdir(logDirectory)
+
+    for (const logFile of logFiles) {
+      const logFilepath = resolve(this.logDirectory, logFile)
+
+      try {
+        await addFileToZip(logFilepath, `logs/${logFile}`)
+      } catch (err) {
+        log.trace(err)
+        throw new Error(`An error occurred while writing "${logFile}" to ZIP.`)
       }
     }
   }
