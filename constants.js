@@ -35,6 +35,12 @@ export const PAGES_FIXTURE_PATH = `${PAGES_DIR_FIXTURES_PATH}pages.jsonl`
 export const EXTRA_PAGES_FIXTURE_PATH = `${PAGES_DIR_FIXTURES_PATH}extraPages.jsonl`
 
 /**
+ * Path to the fixtures folder cdxj sub-directory.
+ * @constant
+ */
+export const CDXJ_DIR_FIXTURES_PATH = `${FIXTURES_PATH}cdxj${sep}`
+
+/**
  * Colors scheme for log level.
  * @constant
  */

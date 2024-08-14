@@ -116,41 +116,12 @@ program.command('create')
         signingUrl: values?.signingUrl,
         signingToken: values?.signingToken,
         pages: values?.pages,
+        cdxj: values?.cdxj,
         log
       })
     } catch (err) {
       log.error(`${err}`) // Show simplified report
       process.exit(1)
-    }
-
-    // Ingest user-provided CDX files, if any.
-    if (values?.cdxj) {
-      try {
-        const dirPath = values?.cdxj
-        const cdxjFiles = await fs.readdir(dirPath)
-        const allowedExts = ['cdx', 'cdxj']
-
-        for (let i = 0; i < cdxjFiles.length; i++) {
-          const cdxjFile = resolve(dirPath, cdxjFiles[i])
-
-          const ext = cdxjFile.split('.').pop()
-          if (!allowedExts.includes(ext)) {
-            log.warn(`CDXJ: Skipping file ${cdxjFile}, not a CDXJ file`)
-            continue
-          }
-
-          log.info(`CDXJ: Reading entries from ${cdxjFile}`)
-          const rl = readline.createInterface({ input: createReadStream(cdxjFile) })
-
-          for await (const line of rl) {
-            archive.addCDXJ(line + '\n')
-          }
-        }
-      } catch (err) {
-        log.trace(err)
-        log.error('An error occurred while processing user-provided CDXJ indices.')
-        process.exit(1)
-      }
     }
 
     // Main process

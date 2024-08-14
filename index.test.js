@@ -11,7 +11,7 @@ import StreamZip from 'node-stream-zip'
 import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
-import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH } from './constants.js'
+import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
 import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 
 // Loads env vars from .env if provided
@@ -372,6 +372,52 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
   const datapackageExtraPages = datapackage.resources.filter(entry => entry.path === 'pages/extraPages.jsonl')[0]
   const extraPagesFixtureHash = await archive.sha256(EXTRA_PAGES_FIXTURE_PATH)
   assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
+
+  // Delete temp file
+  await fs.unlink(options.output)
+})
+
+test('WACZ.process with cdxj option creates valid WACZ with index from provided CDXJ files.', async (_t) => {
+  const options = {
+    input: FIXTURE_INPUT,
+    output: '../tmp.wacz',
+    url: 'https://lil.law.harvard.edu',
+    title: 'WACZ Title',
+    description: 'WACZ Description',
+    pages: PAGES_DIR_FIXTURES_PATH,
+    cdxj: CDXJ_DIR_FIXTURES_PATH
+  }
+
+  const archive = new WACZ(options)
+
+  await archive.process(false)
+
+  const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
+  const zipEntries = await zip.entries()
+
+  //
+  // Indexes should be present
+  //
+  // NOTE: A test for the ZipNum Shared Index feature would require additional / larger fixtures.
+  assert(await zip.entryData('indexes/index.cdx'))
+
+  // Check index contests
+  const combinedCDX = (await zip.entryData('indexes/index.cdx')).toString('utf-8')
+  let pageIndex = 0
+
+  for (const entry of combinedCDX.split('\n')) {
+    if (pageIndex === 0) {
+      assert.equal(entry, 'net,webrecorder)/ 20240814070734 {"url":"https://webrecorder.net/","mime":"text/html","status":200,"digest":"16966a2a2909825ad1d9a6f1b2f4833c8fe43428cb9920d0f974bd7b3d73c31d","length":3941,"offset":0,"filename":"rec-8bc4bd095683-20240307070734658-0.warc.gz"}')
+    } else if (pageIndex === 1) {
+      assert.equal(entry, 'net,webrecorder)/assets/favicon.ico 20240814162442 {"url":"https://webrecorder.net/assets/favicon.ico","mime":"image/vnd.microsoft.icon","status":200,"digest":"e39a17af5d611f3a36784bc70128f93c10a7f5db03626d3030edf2ee1772e328","length":15398,"offset":87313,"filename":"rec-de8ca7249fc0-20240814162441960-0.warc.gz"}')
+    } else if (pageIndex === 2) {
+      assert.equal(entry, 'net,webrecorder)/assets/wr-logo.svg 20240814162441 {"url":"https://webrecorder.net/assets/wr-logo.svg","mime":"image/svg","status":200,"digest":"00c5957f7c97b2e79433fe607bdb47ecb3837a7ee7b603849e7cfb52dcc5f4c7","length":2041,"offset":19176,"filename":"rec-de8ca7249fc0-20240814162441960-0.warc.gz"}')
+    } else {
+      assert.equal(entry, '')
+    }
+
+    pageIndex += 1
+  }
 
   // Delete temp file
   await fs.unlink(options.output)

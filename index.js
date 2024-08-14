@@ -186,6 +186,12 @@ export class WACZ {
   pagesDir = null
 
   /**
+   * Path to directory of CDXJ files to copy as-is into WACZ.
+   * @type {?string}
+   */
+  cdxjDir = null
+
+  /**
    * @param {WACZOptions} options - See {@link WACZOptions} for details.
    */
   constructor (options = {}) {
@@ -289,6 +295,11 @@ export class WACZ {
       this.pagesDir = String(options?.pages).trim()
     }
 
+    if (options?.cdxj) {
+      this.detectPages = false
+      this.cdxjDir = String(options?.cdxj).trim()
+    }
+
     if (options?.indexFromWARCs === false) {
       this.indexFromWARCs = false
     }
@@ -359,6 +370,11 @@ export class WACZ {
 
     info('Initializing indexer')
     this.initWorkerPool()
+
+    if (this.cdxjDir) {
+      info('Reading provided CDXJ files')
+      await this.readFromExistingCDXJ()
+    }
 
     if (this.indexFromWARCs) {
       info('Indexing WARCS')
@@ -652,6 +668,41 @@ export class WACZ {
 
       if (isValidJSONL) {
         await addFileToZip(pagesFile, `pages/${filename}`)
+      }
+    }
+  }
+
+  /**
+   * Reads lines from CDXJ files in `this.cdxjDir` into cdxArray.
+   * @returns {Promise<void>}
+   */
+  readFromExistingCDXJ = async () => {
+    this.stateCheck()
+
+    const { cdxjDir, log, addFileToZip } = this
+
+    if (!cdxjDir) {
+      throw new Error('Error copying CDXJ files, no directory specified.')
+    }
+
+    const allowedExts = ['cdx', 'cdxj']
+
+    const cdxjFiles = await fs.readdir(cdxjDir)
+
+    for (const cdxjFile of cdxjFiles) {
+      const cdxjFilepath = resolve(cdxjDir, cdxjFile)
+
+      const ext = cdxjFilepath.toLowerCase().split('.').pop()
+      if (!allowedExts.includes(ext)) {
+        log.warn(`CDXJ: Skipping file ${cdxjFile}, not a CDXJ file`)
+        continue
+      }
+
+      log.info(`CDXJ: Reading entries from ${cdxjFile}`)
+      const rl = readline.createInterface({ input: createReadStream(cdxjFilepath) })
+
+      for await (const line of rl) {
+        this.addCDXJ(line + '\n')
       }
     }
   }
