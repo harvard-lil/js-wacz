@@ -393,7 +393,6 @@ test('WACZ.process with cdxj option creates valid WACZ with index from provided 
   await archive.process(false)
 
   const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
-  const zipEntries = await zip.entries()
 
   //
   // Indexes should be present

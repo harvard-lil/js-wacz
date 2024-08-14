@@ -679,7 +679,7 @@ export class WACZ {
   readFromExistingCDXJ = async () => {
     this.stateCheck()
 
-    const { cdxjDir, log, addFileToZip } = this
+    const { cdxjDir, log } = this
 
     if (!cdxjDir) {
       throw new Error('Error copying CDXJ files, no directory specified.')

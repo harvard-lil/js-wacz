@@ -1,10 +1,5 @@
 #! /usr/bin/env node
 
-import { createReadStream } from 'fs'
-import fs from 'fs/promises'
-import { resolve } from 'path'
-import * as readline from 'node:readline/promises'
-
 import log from 'loglevel'
 import logPrefix from 'loglevel-plugin-prefix'
 import { Command } from 'commander'
