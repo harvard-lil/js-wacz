@@ -59,7 +59,8 @@ program.command('create')
   .option('--cdxj <string>',
     'Path to a directory containing CDXJ indices to merge into final WACZ CDXJ. ' +
     'If not provided, js-wacz will reindex from WARCS. Must be used in combination ' +
-    'with --pages, since using this option will skip reading the WARC files.')
+    'with --pages, since using this option will skip the step required to generate a ' +
+    'pages.jsonl file.')
   .action(async (name, options, command) => {
     /** @type {Object} */
     const values = options._optionValues
