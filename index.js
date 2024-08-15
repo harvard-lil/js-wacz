@@ -290,6 +290,10 @@ export class WACZ {
       this.detectPages = false
     }
 
+    if (options?.indexFromWARCs === false) {
+      this.indexFromWARCs = false
+    }
+
     if (options?.pages) {
       this.detectPages = false
       this.pagesDir = String(options?.pages).trim()
@@ -297,11 +301,8 @@ export class WACZ {
 
     if (options?.cdxj) {
       this.detectPages = false
+      this.indexFromWARCs = false // Added here for clarity, but implied by calls to `this.addCDXJ()`
       this.cdxjDir = String(options?.cdxj).trim()
-    }
-
-    if (options?.indexFromWARCs === false) {
-      this.indexFromWARCs = false
     }
 
     if (options?.url) {
