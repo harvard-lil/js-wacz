@@ -189,7 +189,7 @@ test('WACZ constructor accounts for options.datapackageExtras if provided.', asy
 
 test('WACZ constructor accounts for options.logDirectory if valid.', async (_t) => {
   const archive = new WACZ({ input: FIXTURE_INPUT, logDirectory: LOG_DIR_FIXTURES_PATH })
-  assert.equal(archive.logDirectory, LOG_DIR_FIXTURES_PATH)
+  assert.equal(archive.logDir, LOG_DIR_FIXTURES_PATH)
 })
 
 test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) => {
