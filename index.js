@@ -751,10 +751,18 @@ export class WACZ {
 
     const { logDir, addFileToZip, log } = this
 
+    const allowedExts = ['log', 'txt']
+
     const logFiles = await fs.readdir(logDir)
 
     for (const logFile of logFiles) {
       const logFilepath = resolve(this.logDir, logFile)
+
+      const ext = logFilepath.toLowerCase().split('.').pop()
+      if (!allowedExts.includes(ext)) {
+        log.warn(`Skipping log file ${logFile}, not in allowed extensions (txt, log).`)
+        continue
+      }
 
       try {
         await addFileToZip(logFilepath, `logs/${logFile}`)
