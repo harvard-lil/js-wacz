@@ -195,7 +195,7 @@ export class WACZ {
    * Path to directory of log files to copy into WACZ.
    * @type {?string}
    */
-  logDirectory = null
+  logDir = null
 
   /**
    * @param {WACZOptions} options - See {@link WACZOptions} for details.
@@ -347,7 +347,7 @@ export class WACZ {
     }
 
     if (options?.logDirectory) {
-      this.logDirectory = String(options?.logDirectory).trim()
+      this.logDir = String(options?.logDirectory).trim()
     }
 
     if (options?.signingToken && this.signingUrl) {
@@ -408,7 +408,7 @@ export class WACZ {
     info('Writing WARCs to WACZ')
     await this.writeWARCsToZip()
 
-    if (this.logDirectory) {
+    if (this.logDir) {
       info('Writing logs to WACZ')
       await this.writeLogsToZip()
     }
@@ -743,18 +743,18 @@ export class WACZ {
   }
 
   /**
-   * Streams all the files listed in `this.logDirectory` to the output ZIP.
+   * Streams all the files listed in `this.logDir` to the output ZIP.
    * @returns {Promise<void>}
    */
   writeLogsToZip = async () => {
     this.stateCheck()
 
-    const { logDirectory, addFileToZip, log } = this
+    const { logDir, addFileToZip, log } = this
 
-    const logFiles = await fs.readdir(logDirectory)
+    const logFiles = await fs.readdir(logDir)
 
     for (const logFile of logFiles) {
-      const logFilepath = resolve(this.logDirectory, logFile)
+      const logFilepath = resolve(this.logDir, logFile)
 
       try {
         await addFileToZip(logFilepath, `logs/${logFile}`)
