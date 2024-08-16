@@ -50,7 +50,7 @@ export const LOG_DIR_FIXTURES_PATH = `${FIXTURES_PATH}logs${sep}`
  * Path to the log.txt fixture
  * @constant
  */
-export const LOG_FILE_FIXTURE_PATH = `${LOG_DIR_FIXTURES_PATH}log.txt`
+export const LOG_FILE_FIXTURE_PATH = `${LOG_DIR_FIXTURES_PATH}sample.log`
 
 /**
  * Colors scheme for log level.

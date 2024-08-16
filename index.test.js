@@ -362,10 +362,11 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
 
   const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
 
-  // File in pages fixture directory that are invalid JSONL or have wrong extension
+  // Files in fixtures directories that are invalid JSONL or have wrong extensions
   // should not be copied into the WACZ.
   assert.rejects(async () => await zip.entryData('pages/invalid.jsonl'))
   assert.rejects(async () => await zip.entryData('pages/invalid.txt'))
+  assert.rejects(async () => await zip.entryData('logs/invalid.md'))
 
   // pages/pages.jsonl and pages/extraPages.jsonl should have same hash as fixtures
   // they were copied from.
@@ -380,7 +381,7 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
   assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
 
   // log file provided in logDirectory option should have same hash as fixture
-  const datapackageLogFile = datapackage.resources.filter(entry => entry.path === 'logs/log.txt')[0]
+  const datapackageLogFile = datapackage.resources.filter(entry => entry.path === 'logs/sample.log')[0]
   const logFileFixtureHash = await archive.sha256(LOG_FILE_FIXTURE_PATH)
   assert.equal(datapackageLogFile.hash, logFileFixtureHash)
 
