@@ -114,9 +114,9 @@ program.command('create')
         description: values?.desc,
         signingUrl: values?.signingUrl,
         signingToken: values?.signingToken,
-        pages: values?.pages,
-        cdxj: values?.cdxj,
-        logDirectory: values?.logDirectory,
+        pagesDir: values?.pages,
+        cdxjDir: values?.cdxj,
+        logDir: values?.logDirectory,
         log
       })
     } catch (err) {

@@ -74,8 +74,8 @@ test('WACZ constructor accounts for options.detectPages if valid.', async (_t) =
   assert.equal(archive.detectPages, false)
 })
 
-test('WACZ constructor accounts for options.pages if provided.', async (_t) => {
-  const archive = new WACZ({ input: FIXTURE_INPUT, pages: PAGES_DIR_FIXTURES_PATH })
+test('WACZ constructor accounts for options.pagesDir if provided.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, pagesDir: PAGES_DIR_FIXTURES_PATH })
   assert.equal(archive.detectPages, false)
   assert.equal(archive.pagesDir, PAGES_DIR_FIXTURES_PATH)
 })
@@ -187,8 +187,8 @@ test('WACZ constructor accounts for options.datapackageExtras if provided.', asy
   assert.equal(archive.datapackageExtras, datapackageExtras)
 })
 
-test('WACZ constructor accounts for options.logDirectory if valid.', async (_t) => {
-  const archive = new WACZ({ input: FIXTURE_INPUT, logDirectory: LOG_DIR_FIXTURES_PATH })
+test('WACZ constructor accounts for options.logDir if valid.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, logDir: LOG_DIR_FIXTURES_PATH })
   assert.equal(archive.logDir, LOG_DIR_FIXTURES_PATH)
 })
 
@@ -352,8 +352,8 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pages: PAGES_DIR_FIXTURES_PATH,
-    logDirectory: LOG_DIR_FIXTURES_PATH
+    pagesDir: PAGES_DIR_FIXTURES_PATH,
+    logDir: LOG_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
@@ -380,7 +380,7 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
   const extraPagesFixtureHash = await archive.sha256(EXTRA_PAGES_FIXTURE_PATH)
   assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
 
-  // log file provided in logDirectory option should have same hash as fixture
+  // log file provided in logDir option should have same hash as fixture
   const datapackageLogFile = datapackage.resources.filter(entry => entry.path === 'logs/sample.log')[0]
   const logFileFixtureHash = await archive.sha256(LOG_FILE_FIXTURE_PATH)
   assert.equal(datapackageLogFile.hash, logFileFixtureHash)
@@ -396,8 +396,8 @@ test('WACZ.process with cdxj option creates valid WACZ with index from provided 
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pages: PAGES_DIR_FIXTURES_PATH,
-    cdxj: CDXJ_DIR_FIXTURES_PATH
+    pagesDir: PAGES_DIR_FIXTURES_PATH,
+    cdxjDir: CDXJ_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
