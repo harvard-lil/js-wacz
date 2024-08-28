@@ -12,8 +12,9 @@
  * @property {?string} signingUrl - If set, will be used to try and sign the resulting archive.
  * @property {?string} signingToken - Access token to be used in combination with `signingUrl`.
  * @property {?Object} datapackageExtras - If set, will be appended to datapackage.json under `extras`.
- * @property {?string} cdxj - If set, skips indexing and allows for passing CDXJ files "as is". Path to a folder containing CDXJ files.
- * @property {?string} pages - If set, allows for passing pre-set pages.jsonl file(s). Path to a folder containing pages files (pages.jsonl, extraPages.jsonl ...). Must be used in combination with `pages`, since using this option will skip the step required to generate a pages.jsonl file.
+ * @property {?string} cdxjDir - If set, skips indexing and allows for passing CDXJ files "as is". Path to a folder containing CDXJ files.
+ * @property {?string} pagesDir - If set, allows for passing pre-set pages.jsonl file(s). Path to a folder containing pages files (pages.jsonl, extraPages.jsonl ...). Must be used in combination with `pages`, since using this option will skip the step required to generate a pages.jsonl file.
+ * @property {?string} logDir - If set, allows for passing existing crawler log files into the WACZ. Path to a folder containing log files. Only files with log or txt extensions in that folder will be copied.
  * @property {?any} log - Will be used instead of the Console API for logging, if compatible (i.e: loglevel). Defaults to globalThis.console.
  */
 

@@ -192,6 +192,12 @@ export class WACZ {
   cdxjDir = null
 
   /**
+   * Path to directory of log files to copy into WACZ.
+   * @type {?string}
+   */
+  logDir = null
+
+  /**
    * @param {WACZOptions} options - See {@link WACZOptions} for details.
    */
   constructor (options = {}) {
@@ -294,15 +300,15 @@ export class WACZ {
       this.indexFromWARCs = false
     }
 
-    if (options?.pages) {
+    if (options?.pagesDir) {
       this.detectPages = false
-      this.pagesDir = String(options?.pages).trim()
+      this.pagesDir = String(options?.pagesDir).trim()
     }
 
-    if (options?.cdxj) {
+    if (options?.cdxjDir) {
       this.detectPages = false
       this.indexFromWARCs = false // Added here for clarity, but implied by calls to `this.addCDXJ()`
-      this.cdxjDir = String(options?.cdxj).trim()
+      this.cdxjDir = String(options?.cdxjDir).trim()
     }
 
     if (options?.url) {
@@ -338,6 +344,10 @@ export class WACZ {
       } catch (_err) {
         log.warn('"signingUrl" provided is not a valid url. Skipping.')
       }
+    }
+
+    if (options?.logDir) {
+      this.logDir = String(options?.logDir).trim()
     }
 
     if (options?.signingToken && this.signingUrl) {
@@ -397,6 +407,11 @@ export class WACZ {
 
     info('Writing WARCs to WACZ')
     await this.writeWARCsToZip()
+
+    if (this.logDir) {
+      info('Writing logs to WACZ')
+      await this.writeLogsToZip()
+    }
 
     info('Writing datapackage.json to WACZ')
     await this.writeDatapackageToZip()
@@ -723,6 +738,37 @@ export class WACZ {
       } catch (err) {
         log.trace(err)
         throw new Error(`An error occurred while writing "${warc}" to ZIP.`)
+      }
+    }
+  }
+
+  /**
+   * Streams all the files listed in `this.logDir` to the output ZIP.
+   * @returns {Promise<void>}
+   */
+  writeLogsToZip = async () => {
+    this.stateCheck()
+
+    const { logDir, addFileToZip, log } = this
+
+    const allowedExts = ['log', 'txt']
+
+    const logFiles = await fs.readdir(logDir)
+
+    for (const logFile of logFiles) {
+      const logFilepath = resolve(this.logDir, logFile)
+
+      const ext = logFilepath.toLowerCase().split('.').pop()
+      if (!allowedExts.includes(ext)) {
+        log.warn(`Skipping log file ${logFile}, not in allowed extensions (txt, log).`)
+        continue
+      }
+
+      try {
+        await addFileToZip(logFilepath, `logs/${logFile}`)
+      } catch (err) {
+        log.trace(err)
+        throw new Error(`An error occurred while writing "${logFile}" to ZIP.`)
       }
     }
   }

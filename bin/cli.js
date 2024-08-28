@@ -61,6 +61,9 @@ program.command('create')
     'If not provided, js-wacz will reindex from WARCS. Must be used in combination ' +
     'with --pages, since using this option will skip the step required to generate a ' +
     'pages.jsonl file.')
+  .option(
+    '-l --log-directory <string>',
+    'Path to a directory of log files to copy into WACZ.')
   .action(async (name, options, command) => {
     /** @type {Object} */
     const values = options._optionValues
@@ -111,8 +114,9 @@ program.command('create')
         description: values?.desc,
         signingUrl: values?.signingUrl,
         signingToken: values?.signingToken,
-        pages: values?.pages,
-        cdxj: values?.cdxj,
+        pagesDir: values?.pages,
+        cdxjDir: values?.cdxj,
+        logDir: values?.logDirectory,
         log
       })
     } catch (err) {

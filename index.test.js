@@ -11,7 +11,7 @@ import StreamZip from 'node-stream-zip'
 import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
-import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
+import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, LOG_DIR_FIXTURES_PATH, LOG_FILE_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
 import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 
 // Loads env vars from .env if provided
@@ -74,8 +74,8 @@ test('WACZ constructor accounts for options.detectPages if valid.', async (_t) =
   assert.equal(archive.detectPages, false)
 })
 
-test('WACZ constructor accounts for options.pages if provided.', async (_t) => {
-  const archive = new WACZ({ input: FIXTURE_INPUT, pages: PAGES_DIR_FIXTURES_PATH })
+test('WACZ constructor accounts for options.pagesDir if provided.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, pagesDir: PAGES_DIR_FIXTURES_PATH })
   assert.equal(archive.detectPages, false)
   assert.equal(archive.pagesDir, PAGES_DIR_FIXTURES_PATH)
 })
@@ -185,6 +185,11 @@ test('WACZ constructor accounts for options.datapackageExtras if provided.', asy
   const datapackageExtras = { foo: 'bar' }
   const archive = new WACZ({ input: FIXTURE_INPUT, datapackageExtras })
   assert.equal(archive.datapackageExtras, datapackageExtras)
+})
+
+test('WACZ constructor accounts for options.logDir if valid.', async (_t) => {
+  const archive = new WACZ({ input: FIXTURE_INPUT, logDir: LOG_DIR_FIXTURES_PATH })
+  assert.equal(archive.logDir, LOG_DIR_FIXTURES_PATH)
 })
 
 test('addPage adds entry to pagesTree and turns detectPages off.', async (_t) => {
@@ -347,7 +352,8 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pages: PAGES_DIR_FIXTURES_PATH
+    pagesDir: PAGES_DIR_FIXTURES_PATH,
+    logDir: LOG_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
@@ -356,10 +362,11 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
 
   const zip = new StreamZip.async({ file: options.output }) // eslint-disable-line
 
-  // File in pages fixture directory that are invalid JSONL or have wrong extension
+  // Files in fixtures directories that are invalid JSONL or have wrong extensions
   // should not be copied into the WACZ.
   assert.rejects(async () => await zip.entryData('pages/invalid.jsonl'))
   assert.rejects(async () => await zip.entryData('pages/invalid.txt'))
+  assert.rejects(async () => await zip.entryData('logs/invalid.md'))
 
   // pages/pages.jsonl and pages/extraPages.jsonl should have same hash as fixtures
   // they were copied from.
@@ -373,6 +380,11 @@ test('WACZ.process with pagesDir option creates valid WACZ with provided pages f
   const extraPagesFixtureHash = await archive.sha256(EXTRA_PAGES_FIXTURE_PATH)
   assert.equal(datapackageExtraPages.hash, extraPagesFixtureHash)
 
+  // log file provided in logDir option should have same hash as fixture
+  const datapackageLogFile = datapackage.resources.filter(entry => entry.path === 'logs/sample.log')[0]
+  const logFileFixtureHash = await archive.sha256(LOG_FILE_FIXTURE_PATH)
+  assert.equal(datapackageLogFile.hash, logFileFixtureHash)
+
   // Delete temp file
   await fs.unlink(options.output)
 })
@@ -384,8 +396,8 @@ test('WACZ.process with cdxj option creates valid WACZ with index from provided 
     url: 'https://lil.law.harvard.edu',
     title: 'WACZ Title',
     description: 'WACZ Description',
-    pages: PAGES_DIR_FIXTURES_PATH,
-    cdxj: CDXJ_DIR_FIXTURES_PATH
+    pagesDir: PAGES_DIR_FIXTURES_PATH,
+    cdxjDir: CDXJ_DIR_FIXTURES_PATH
   }
 
   const archive = new WACZ(options)
