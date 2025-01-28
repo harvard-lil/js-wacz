@@ -174,6 +174,15 @@ Can be used to determine how verbose **js-wacz** needs to be.
 js-wacz create -f "collection/*.warc.gz" --log-level trace
 ```
 
+### --log-directory, -l
+
+Path to a folder containing log files (only files with .log or .txt file extensions will be included in the WACZ).
+
+```bash
+# Assuming the following file exists: collection/logs/crawl.log
+js-wacz create -f "collection/*.warc.gz" --log-directory collection/logs/
+```
+
 
 [👆 Back to summary](#summary)
 
