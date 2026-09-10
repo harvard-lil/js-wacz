@@ -1,4 +1,7 @@
+#!/usr/bin/env bash
 # Step-by-step publish helper
+set -e
+
 cd ../../;
 
 read -p "Run linter (y/n)? " -n 1 -r
@@ -9,6 +12,7 @@ then
         echo "Lint OK"
     else
         echo "Lint step failed"
+        exit 1
     fi
 fi
 
@@ -20,6 +24,7 @@ then
         echo "Tests OK"
     else
         echo "Tests failed"
+        exit 1
     fi
 fi
 
