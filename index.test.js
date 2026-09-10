@@ -8,14 +8,10 @@ import fs from 'fs/promises'
 import log from 'loglevel'
 import { globSync } from 'glob'
 import StreamZip from 'node-stream-zip'
-import * as dotenv from 'dotenv'
 
 import { WACZ } from './index.js'
 import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES_FIXTURE_PATH, LOG_DIR_FIXTURES_PATH, LOG_FILE_FIXTURE_PATH, CDXJ_DIR_FIXTURES_PATH } from './constants.js'
-import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
-
-// Loads env vars from .env if provided
-dotenv.config({ quiet: true })
+import { assertSHA256WithPrefix } from './utils/assertions.js'
 
 /**
  * Path to *.warc.gz files in the fixture folder.
@@ -213,7 +209,6 @@ test('addCDXJ adds entry to cdxTree and turns indexFromWARCs off.', async (_t) =
   assert.equal(archive.cdxTree.length, 1)
 })
 
-// Note: if `TEST_SIGNING_URL` / `TEST_SIGNING_TOKEN` are present, this will also test the signing feature.
 test('WACZ.process runs the entire process and writes a valid .wacz to disk, accounting for options.', async (_t) => {
   //
   // Preparation step: create WACZ out of .warc.gz files in "fixtures" folder.
@@ -225,9 +220,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
     title: 'WACZ Title',
     description: 'WACZ Description',
     ts: '2023-02-22T12:00:00Z',
-    datapackageExtras: { context: 'Testing' },
-    signingUrl: process.env?.TEST_SIGNING_URL || undefined,
-    signingToken: process.env?.TEST_SIGNING_TOKEN
+    datapackageExtras: { context: 'Testing' }
   }
 
   const archive = new WACZ(options)
@@ -301,10 +294,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
   assert.doesNotThrow(() => assertSHA256WithPrefix(datapackageDigest.hash))
   assert(datapackageDigest.path, 'datapackage.json')
 
-  // Extra: if `TEST_SIGNING_URL` was provided, check signature
-  if (process.env?.TEST_SIGNING_URL) {
-    assert.doesNotThrow(() => assertValidWACZSignatureFormat(datapackageDigest.signedData))
-  }
+  assert.equal(datapackageDigest.signedData, undefined)
 
   //
   // All lines in pages.jsonl should be valid JSON in the format we expect.
