@@ -40,7 +40,7 @@ js-wacz create -f "collection/*.warc.gz" -o "collection.wacz"
 
 ## Install
 
-**js-wacz** requires [Node JS 18+](https://nodejs.org/en/). 
+**js-wacz** requires [Node JS 20+](https://nodejs.org/en/).
 
 `npm` can be used to install this package and make the **js-wacz** command accessible system-wide:
 

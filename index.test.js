@@ -15,7 +15,7 @@ import { FIXTURES_PATH, PAGES_DIR_FIXTURES_PATH, PAGES_FIXTURE_PATH, EXTRA_PAGES
 import { assertSHA256WithPrefix, assertValidWACZSignatureFormat } from './utils/assertions.js' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 
 // Loads env vars from .env if provided
-dotenv.config()
+dotenv.config({ quiet: true })
 
 /**
  * Path to *.warc.gz files in the fixture folder.
