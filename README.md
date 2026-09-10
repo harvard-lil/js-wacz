@@ -35,6 +35,7 @@ js-wacz create -f "collection/*.warc.gz" -o "collection.wacz"
 - [Programmatic use](#programmatic-use)
 - [Feature parity with py-wacz](#feature-parity-with-py-wacz)
 - [Development](#development)
+- [Release notes](CHANGELOG.md)
 
 ---
 
@@ -85,6 +86,8 @@ js-wacz create --file "collection/*.warc"
 Specify where the resulting `.wacz` file should be created, and what its filename should be.
 
 Defaults to `archive.wacz` in the current directory if not provided.
+
+The completed archive replaces an existing destination only after successful finalization. Handled errors preserve the previous file and remove temporary output.
 
 ```bash
 js-wacz create --file cool-beans.warc --output cool-beans.wacz
@@ -151,6 +154,8 @@ If provided, will be used as an API endpoint for applying [a cryptographic signa
 
 This endpoint is expected to be [authsign-compatible](https://github.com/webrecorder/authsign). 
 
+An invalid signing URL or failed signature check rejects the export. The returned hash must match the root manifest and its signature must verify with the supplied key or domain certificate. This check does not verify certificate trust, domain identity, or RFC 3161 timestamps. See the [release notes](CHANGELOG.md) for supported formats and historical hash compatibility.
+
 ```bash
 js-wacz create -f "collection/*.warc.gz" --signing-url "https://example.com/sign"
 ```
@@ -198,11 +203,11 @@ import { WACZ } from '@harvard-lil/js-wacz'
 
 try {
   const archive = new WACZ({ 
-    file: 'collection/*.warc.gz',
+    input: 'collection/*.warc.gz',
     output: 'collection.wacz',
     signingUrl: 'https://example.com/sign',
     signingToken: 'FOO-BAR',
-  }
+  })
 
   await archive.process()
 
@@ -213,6 +218,20 @@ try {
 ```
 
 Although a `process()` convenience method is made available, every step of said process can be run individually and the archive's state inspected / edited throughout.
+
+`process()` and `finalize()` release output resources on success or failure. Workers are closed after indexing. Incremental callers should use `finally` to dispose an archive if any step fails or the archive is abandoned:
+
+```javascript
+const archive = new WACZ({ input: 'collection/*.warc.gz', output: 'collection.wacz' })
+try {
+  await archive.addFileToZip(Buffer.from('Extra data'), 'extras/data.txt')
+  await archive.process()
+} finally {
+  await archive.dispose()
+}
+```
+
+`dispose()` can be called repeatedly and leaves a successfully finalized file in place. A finalized or disposed instance cannot start another export.
 
 ### Notable affordances
 - `WACZ.addPage()` allows for manually adding an entry to `pages.jsonl`.
@@ -260,16 +279,8 @@ This project uses [Node.js' built-in test runner](https://nodejs.org/api/test.ht
 npm run test
 ```
 
-#### Tests-specific environment variables
-The following environment variables allow for testing features requiring access to a third-party server. 
-
-These are optional, and can be added to a local `.env` file which will be automatically interpreted by the test runner. 
-
-| Name | Description |
-| --- | --- |
-| `TEST_SIGNING_URL` | URL of an [authsign-compatible endpoint](https://github.com/webrecorder/authsign) for signing WACZ files.<br>To run such an endpoint locally, use `npm run dev-signer`, which will overwrite `.env` and set this variable to `http://localhost:5000/sign`; see [.services/signer](.services/signer).|
-| `TEST_SIGNING_TOKEN` | If required by the server at `TEST_SIGNING_URL`, an authentication token. |
-
+The suite starts and stops its own local HTTP signing servers, generates real
+cryptographic signatures, and checks independent RSA/ECDSA certificate fixtures.
 
 ### Available CLI
 
@@ -286,9 +297,6 @@ npm run lint-autofix
 # Step-by-step NPM publishing helper
 npm run publish-util
 
-# Runs a local instance of wacz-signer for test purposes (see "Testing" section)
-npm run dev-signer
 ```
 
 [👆 Back to summary](#summary)
-
