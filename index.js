@@ -1,7 +1,7 @@
 /// <reference path="types.js" />
 
 import fs from 'fs/promises'
-import { createWriteStream, createReadStream, WriteStream, unlinkSync } from 'fs' // eslint-disable-line
+import { createReadStream, WriteStream } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep, resolve } from 'path'
 import * as readline from 'node:readline/promises'
@@ -11,10 +11,10 @@ import { Deflate } from 'pako'
 import { globSync } from 'glob'
 import BTree from 'sorted-btree'
 import { Piscina } from 'piscina'
-import Archiver from 'archiver'
 import { v4 as uuidv4 } from 'uuid'
 
-import { assertValidWACZSignatureFormat } from './utils/assertions.js'
+import { assertValidWACZSignature } from './utils/signatures.js'
+import { AtomicOutput } from './utils/atomic-output.js'
 import { PACKAGE_INFO } from './constants.js'
 
 /**
@@ -59,6 +59,9 @@ export class WACZ {
    * @type {?Piscina}
    */
   indexWARCPool = null
+
+  _poolClosing = null
+  _signingAbortController = null
 
   /**
    * From WACZOptions.input.
@@ -179,6 +182,9 @@ export class WACZ {
    */
   archiveStream = null
 
+  /** @type {?AtomicOutput} */
+  _output = null
+
   /**
    * Path to directory of pages JSONL files to copy as-is into WACZ.
    * @type {?string}
@@ -274,11 +280,6 @@ export class WACZ {
       if (!this.output.toLocaleLowerCase().endsWith('.wacz')) {
         throw new Error('"output" must end with .wacz.')
       }
-
-      // Delete existing file, if any
-      try {
-        unlinkSync(this.output) // [!] We can't use async version here (constructor)
-      } catch (_err) { }
     } catch (err) {
       log.trace(err)
       throw new Error('"output" must be a valid "*.wacz" path on which the program can write.')
@@ -286,7 +287,7 @@ export class WACZ {
   }
 
   /**
-   * Processes "non-blocking" options for which we automatically switch to defaults or skip.
+   * Processes optional settings. Invalid signing configuration always throws.
    * @param {WACZOptions} options
    */
   filterNonBlockingOptions = (options) => {
@@ -337,13 +338,9 @@ export class WACZ {
       this.description = String(options.description).trim()
     }
 
-    if (options?.signingUrl) {
-      try {
-        new URL(options.signingUrl) // eslint-disable-line
-        this.signingUrl = options.signingUrl
-      } catch (_err) {
-        log.warn('"signingUrl" provided is not a valid url. Skipping.')
-      }
+    if (options?.signingUrl !== undefined && options?.signingUrl !== null) {
+      new URL(options.signingUrl) // eslint-disable-line
+      this.signingUrl = options.signingUrl
     }
 
     if (options?.logDir) {
@@ -372,15 +369,23 @@ export class WACZ {
   process = async (verbose = true) => {
     this.stateCheck()
 
+    let completed = false
+    try {
+      this.initOutputStreams()
+      await this._output.run(this._process(verbose))
+      completed = true
+    } finally {
+      if (!completed) await this.dispose()
+    }
+  }
+
+  /** Run the processing steps under process()'s output error handling. */
+  _process = async (verbose) => {
     const info = verbose ? this.log.info : () => {}
 
     info(`${this.WARCs.length} WARC(s) to process`)
 
-    info(`Initializing output stream at: ${this.output}`)
-    this.initOutputStreams()
-
-    info('Initializing indexer')
-    this.initWorkerPool()
+    info(`Preparing output for: ${this.output}`)
 
     if (this.cdxjDir) {
       info('Reading provided CDXJ files')
@@ -445,21 +450,19 @@ export class WACZ {
   }
 
   /**
-   * Creates an Archiver instance which streams out to `this.output`.
+   * Creates an Archiver instance with a temporary output beside `this.output`.
    * Will only run if needed (can be called multiple times).
    * @returns {void}
    */
   initOutputStreams = () => {
     this.stateCheck()
 
-    if (!this.outputStream) {
-      this.outputStream = createWriteStream(this.output)
+    if (!this._output) {
+      this._output = new AtomicOutput(this.output)
+      this.outputStream = this._output.stream
+      this.archiveStream = this._output.archive
     }
-
-    if (!this.archiveStream && this.outputStream) {
-      this.archiveStream = new Archiver('zip', { store: true })
-      this.archiveStream.pipe(this.outputStream)
-    }
+    this._output.check()
   }
 
   /**
@@ -469,7 +472,7 @@ export class WACZ {
   initWorkerPool = () => {
     this.stateCheck()
 
-    this.indexWARCPool = new Piscina({
+    this.indexWARCPool ??= new Piscina({
       filename: new URL('./workers/indexWARC.js', import.meta.url).href
     })
   }
@@ -482,18 +485,41 @@ export class WACZ {
    */
   indexWARCs = async () => {
     this.stateCheck()
+    this.initWorkerPool()
+    let completed = false
+    try {
+      const results = await Promise.all(this.WARCs.map(async filename => {
+        const results = await this.indexWARCPool.run({ filename, detectPages: this.detectPages })
 
-    return await Promise.all(this.WARCs.map(async filename => {
-      const results = await this.indexWARCPool.run({ filename, detectPages: this.detectPages })
+        for (const value of results.cdx) {
+          this.cdxTree.setIfNotPresent(value, true)
+        }
 
-      for (const value of results.cdx) {
-        this.cdxTree.setIfNotPresent(value, true)
-      }
+        for (const value of results.pages) {
+          this.pagesTree.setIfNotPresent(value.url, value)
+        }
+      }))
+      completed = true
+      return results
+    } finally {
+      await this.closeWorkerPool()
+      if (!completed) await this.dispose()
+    }
+  }
 
-      for (const value of results.pages) {
-        this.pagesTree.setIfNotPresent(value.url, value)
-      }
-    }))
+  /** Release indexing workers, including after a failed indexing operation. */
+  closeWorkerPool = async () => {
+    const pool = this.indexWARCPool
+    this.indexWARCPool = null
+    if (pool) this._poolClosing = pool.destroy()
+    await this._poolClosing
+  }
+
+  /** Discard an unfinished archive and release resources. Safe to call repeatedly. */
+  dispose = async () => {
+    this.consumed = true
+    this._signingAbortController?.abort()
+    await Promise.all([this.closeWorkerPool(), this._output?.dispose()])
   }
 
   /**
@@ -737,7 +763,7 @@ export class WACZ {
         await addFileToZip(warc, `archive/${basename(warc)}`)
       } catch (err) {
         log.trace(err)
-        throw new Error(`An error occurred while writing "${warc}" to ZIP.`)
+        throw new Error(`An error occurred while writing "${warc}" to ZIP.`, { cause: err })
       }
     }
   }
@@ -768,7 +794,7 @@ export class WACZ {
         await addFileToZip(logFilepath, `logs/${logFile}`)
       } catch (err) {
         log.trace(err)
-        throw new Error(`An error occurred while writing "${logFile}" to ZIP.`)
+        throw new Error(`An error occurred while writing "${logFile}" to ZIP.`, { cause: err })
       }
     }
   }
@@ -826,7 +852,8 @@ export class WACZ {
     const { archiveStream, resources, log, signingUrl } = this
 
     try {
-      const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
+      const datapackageHash = resources.find(entry => entry.path === 'datapackage.json')?.hash
+      if (!datapackageHash) throw new Error('No datapackage to digest.')
 
       const digest = {
         path: 'datapackage.json',
@@ -840,7 +867,7 @@ export class WACZ {
           digest.signedData = signature
         } catch (err) {
           log.trace(err)
-          throw new Error('An error occured while signing "datapackage.json".')
+          throw new Error('An error occurred while signing "datapackage.json".', { cause: err })
         }
       }
 
@@ -849,12 +876,12 @@ export class WACZ {
       archiveStream.append(datapackageDigest, { name: 'datapackage-digest.json' })
     } catch (err) {
       log.trace(err)
-      throw new Error('An error occurred while generating "datapackage-digest.json".')
+      throw new Error('An error occurred while generating "datapackage-digest.json".', { cause: err })
     }
   }
 
   /**
-   * Request signature for the current datapackage and checks its format.
+   * Request a signature and verify it covers the current datapackage hash.
    * Expects the remote server to be authsign-compatible (https://github.com/webrecorder/authsign).
    * @returns {Promise<object>} - Signature to data to be appended to the datapackage digest.
    */
@@ -862,7 +889,7 @@ export class WACZ {
     this.stateCheck()
 
     const { resources, log, datapackageDate, signingUrl, signingToken } = this
-    const datapackageHash = (resources.find(entry => entry.name === 'datapackage.json')).hash
+    const datapackageHash = resources.find(entry => entry.path === 'datapackage.json')?.hash
 
     // Throw early if datapackage is not ready.
     if (!datapackageDate || !datapackageHash) {
@@ -888,25 +915,27 @@ export class WACZ {
         headers.Authorization = signingToken
       }
 
-      response = await fetch(signingUrl, { method: 'POST', headers, body })
+      this._signingAbortController = new AbortController()
+      response = await fetch(signingUrl, { method: 'POST', headers, body, signal: this._signingAbortController.signal })
 
       if (response?.status !== 200) {
         throw new Error(`Server responded with HTTP ${response.status}.`)
       }
     } catch (err) {
       log.trace(err)
-      throw new Error('WACZ Signature request failed.')
+      throw new Error('WACZ Signature request failed.', { cause: err })
     }
 
     // Check signature data
     try {
       signedData = await response.json()
-      assertValidWACZSignatureFormat(signedData)
+      assertValidWACZSignature(signedData, datapackageHash)
     } catch (err) {
       log.trace(err)
-      throw new Error('Server returned an invalid WACZ signature.')
+      throw new Error('Server returned an invalid WACZ signature.', { cause: err })
     }
 
+    this._signingAbortController = null
     return signedData
   }
 
@@ -916,22 +945,13 @@ export class WACZ {
    */
   finalize = async () => {
     this.stateCheck()
-
-    // "Pinky Promise pattern"
-    let closeStreamResolve = null
-
-    const closeStreamPromise = new Promise(resolve => {
-      closeStreamResolve = resolve
-    })
-
-    this.outputStream.on('close', () => {
-      closeStreamResolve()
-    })
-
-    this.archiveStream.finalize()
-    await closeStreamPromise // Wait for file stream to close
-
-    this.consumed = true
+    try {
+      this.initOutputStreams()
+      await this.closeWorkerPool()
+      await this._output.finalize()
+    } finally {
+      await this.dispose()
+    }
   }
 
   /**
@@ -997,31 +1017,37 @@ export class WACZ {
    * @returns {Promise<WACZDatapackageResource>} - What was added to `this.resources`
    */
   addFileToZip = async (file, destination) => {
-    this.initOutputStreams() // Initializes output streams if needed.
-    const { archiveStream, resources, sha256, byteLength } = this
+    let completed = false
+    try {
+      this.initOutputStreams() // Initializes output streams if needed.
+      const { archiveStream, resources, sha256, byteLength } = this
 
-    destination = String(destination).trim()
+      destination = String(destination).trim()
 
-    // If path
-    if (file.constructor.name === 'String') {
-      await fs.access(file)
-      await archiveStream.file(file, { name: destination })
-    // If data-chunk
-    } else {
-      await archiveStream.append(file, { name: destination })
+      // If path
+      if (file.constructor.name === 'String') {
+        await fs.access(file)
+        await archiveStream.file(file, { name: destination })
+        // If data-chunk
+      } else {
+        await archiveStream.append(file, { name: destination })
+      }
+
+      // Record the resource metadata.
+      const resource = {
+        name: basename(destination),
+        path: destination,
+        hash: await sha256(file),
+        bytes: await byteLength(file)
+      }
+
+      resources.push(resource)
+      this._output.check()
+      completed = true
+      return resource
+    } finally {
+      if (!completed) await this.dispose()
     }
-
-    // Push to resources list and return ut
-    const resource = {
-      name: basename(destination),
-      path: destination,
-      hash: await sha256(file),
-      bytes: await byteLength(file)
-    }
-
-    resources.push(resource)
-
-    return resource
   }
 
   /**
@@ -1060,7 +1086,6 @@ export class WACZ {
     }
 
     // If filename was given: stream file into hash function.
-    // Inspired by answers on: https://stackoverflow.com/q/18658612
     try {
       await fs.access(file)
     } catch (err) {
@@ -1068,25 +1093,10 @@ export class WACZ {
       throw new Error(`${file} cannot be read.`)
     }
 
-    const stream = createReadStream(file)
     const hash = createHash('sha256')
-    let digest = ''
-
-    hash.setEncoding('hex')
-
-    await new Promise((resolve, reject) => {
-      stream.on('error', err => reject(err))
-      stream.on('data', chunk => hash.update(chunk))
-
-      stream.on('end', () => {
-        hash.end()
-        digest = hash.read()
-        resolve()
-      })
-
-      stream.pipe(hash)
-    })
-
-    return `sha256:${digest}`
+    for await (const chunk of createReadStream(file)) {
+      hash.update(chunk)
+    }
+    return `sha256:${hash.digest('hex')}`
   }
 }

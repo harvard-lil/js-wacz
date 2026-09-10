@@ -136,12 +136,11 @@ test('WACZ constructor accounts for options.description if provided.', async (_t
   assert.equal(archive.description, 'FOO')
 })
 
-test('WACZ constructor ignores options.signingUrl if invalid.', async (_t) => {
-  const scenarios = ['foo', {}, Buffer.alloc(0), 12, () => {}]
+test('WACZ constructor rejects options.signingUrl if invalid.', async (_t) => {
+  const scenarios = ['', ' ', false, 0, 'foo', {}, Buffer.alloc(0), 12, () => {}]
 
   for (const signingUrl of scenarios) {
-    const archive = new WACZ({ input: FIXTURE_INPUT, signingUrl })
-    assert.equal(archive.signingUrl, null)
+    assert.throws(() => new WACZ({ input: FIXTURE_INPUT, signingUrl }))
   }
 })
 
@@ -151,8 +150,8 @@ test('WACZ constructor accounts for options.signingUrl if valid.', async (_t) =>
   assert.equal(archive.signingUrl, signingUrl)
 })
 
-test('WACZ constructor ignores options.signingUrl if invalid.', async (_t) => {
-  const scenarios = ['foo', {}, Buffer.alloc(0), 12, () => {}]
+test('WACZ constructor permits omitted or null options.signingUrl.', async (_t) => {
+  const scenarios = [undefined, null]
 
   for (const signingUrl of scenarios) {
     const archive = new WACZ({ input: FIXTURE_INPUT, signingUrl })
@@ -227,7 +226,7 @@ test('WACZ.process runs the entire process and writes a valid .wacz to disk, acc
     description: 'WACZ Description',
     ts: '2023-02-22T12:00:00Z',
     datapackageExtras: { context: 'Testing' },
-    signingUrl: process.env?.TEST_SIGNING_URL,
+    signingUrl: process.env?.TEST_SIGNING_URL || undefined,
     signingToken: process.env?.TEST_SIGNING_TOKEN
   }
 
