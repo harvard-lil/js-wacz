@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { createReadStream, WriteStream } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
-import { basename, sep, resolve } from 'path'
+import { basename, join, sep, resolve } from 'path'
 import * as readline from 'node:readline/promises'
 import assert from 'node:assert/strict'
 
@@ -1024,10 +1024,13 @@ export class WACZ {
 
       destination = String(destination).trim()
 
-      // If path
+      // Archive a private snapshot so later edits to the caller's file cannot
+      // change the ZIP entry after its hash and size have been recorded.
       if (file.constructor.name === 'String') {
-        await fs.access(file)
-        await archiveStream.file(file, { name: destination })
+        const snapshot = join(this._output.directory, uuidv4())
+        await fs.copyFile(file, snapshot)
+        file = snapshot
+        await archiveStream.file(snapshot, { name: destination })
         // If data-chunk
       } else {
         await archiveStream.append(file, { name: destination })
