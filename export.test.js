@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { once } from 'node:events'
+import { PassThrough } from 'node:stream'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import StreamZip from 'node-stream-zip'
@@ -95,6 +96,26 @@ test('every resource hash covers emitted bytes, including copied pages and logs'
   await archive.process(false)
   await checkArchive(output)
   assert.equal(archive.indexWARCPool, null)
+})
+
+test('a queued path keeps the resource hash aligned with archived bytes', async t => {
+  const { archive, directory, output } = await setup(t)
+  const path = join(directory, 'mutable.txt')
+  archive.initOutputStreams()
+  const blocker = new PassThrough()
+  archive.archiveStream.append(blocker, { name: 'extras/blocker' })
+  await writeFile(path, 'original')
+  await archive.addFileToZip(path, 'extras/mutable.txt')
+  await writeFile(path, 'modified after queueing')
+  blocker.end('ready')
+  await archive.writeDatapackageToZip()
+  await archive.writeDatapackageDigestToZip()
+  await archive.finalize()
+  const { manifest } = await checkArchive(output)
+  const resource = manifest.resources.find(resource => resource.path === 'extras/mutable.txt')
+  assert.equal(resource.hash, sha256(Buffer.from('original')))
+  assert.equal(resource.bytes, Buffer.byteLength('original'))
+  assert.deepEqual((await readdir(directory)).sort(), ['mutable.txt', 'output.wacz'])
 })
 
 for (const encoding of ['der', 'ieee-p1363']) {
