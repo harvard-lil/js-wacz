@@ -1,11 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash, generateKeyPairSync, sign, verify } from 'node:crypto'
-import { mkdtemp, readFile, readdir, rm, writeFile, mkdir, copyFile } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile, mkdir, copyFile, appendFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { once } from 'node:events'
+import { PassThrough } from 'node:stream'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import StreamZip from 'node-stream-zip'
@@ -95,6 +96,98 @@ test('every resource hash covers emitted bytes, including copied pages and logs'
   await archive.process(false)
   await checkArchive(output)
   assert.equal(archive.indexWARCPool, null)
+})
+
+// An unfinished earlier entry keeps Archiver from reading later entries until `blocker` ends.
+const blockArchive = archive => {
+  archive.initOutputStreams()
+  const blocker = new PassThrough()
+  archive.archiveStream.append(blocker, { name: 'extras/blocker' })
+  return blocker
+}
+
+test('a queued path keeps the resource hash aligned with archived bytes', async t => {
+  const { archive, directory, output } = await setup(t)
+  const path = join(directory, 'mutable.txt')
+  const blocker = blockArchive(archive)
+  await writeFile(path, 'original')
+  await archive.addFileToZip(path, 'extras/mutable.txt')
+  await writeFile(path, 'modified after queueing')
+  blocker.end('ready')
+  await archive.writeDatapackageToZip()
+  await archive.writeDatapackageDigestToZip()
+  await archive.finalize()
+  const { manifest } = await checkArchive(output)
+  const resource = manifest.resources.find(resource => resource.path === 'extras/mutable.txt')
+  assert.equal(resource.hash, sha256(Buffer.from('original')))
+  assert.equal(resource.bytes, Buffer.byteLength('original'))
+  assert.deepEqual((await readdir(directory)).sort(), ['mutable.txt', 'output.wacz'])
+})
+
+test('a buffer may be reused once addFileToZip resolves', async t => {
+  const { archive, output } = await setup(t)
+  const data = Buffer.from('original')
+  const blocker = blockArchive(archive)
+  await archive.addFileToZip(data, 'extras/buffer.txt')
+  data.write('MODIFIED')
+  blocker.end('ready')
+  await archive.writeDatapackageToZip()
+  await archive.writeDatapackageDigestToZip()
+  await archive.finalize()
+  const { manifest } = await checkArchive(output)
+  const resource = manifest.resources.find(resource => resource.path === 'extras/buffer.txt')
+  assert.equal(resource.hash, sha256(Buffer.from('original')))
+})
+
+test('buffers archive intact across chunk boundaries', async t => {
+  const { archive, output } = await setup(t)
+  const sizes = [0, 1, 65535, 65536, 65537, 200000]
+  for (const size of sizes) {
+    const bytes = new Uint8Array(Array.from({ length: size }, (_, i) => i % 251))
+    const resource = await archive.addFileToZip(bytes, `extras/${size}.bin`)
+    assert.equal(resource.hash, sha256(bytes))
+    assert.equal(resource.bytes, size)
+  }
+  await archive.writeDatapackageToZip()
+  await archive.writeDatapackageDigestToZip()
+  await archive.finalize()
+  await checkArchive(output)
+})
+
+test('a path changed while it is being archived fails the export', async t => {
+  const { archive, directory, output } = await setup(t)
+  const path = join(directory, 'large.bin')
+  await writeFile(path, Buffer.alloc(1024 * 1024))
+  await writeFile(output, 'previous archive')
+  const blocker = blockArchive(archive)
+  let fingerprinted
+  const firstCheck = new Promise(resolve => { fingerprinted = resolve })
+  const check = archive.checkSourceUnchanged
+  t.mock.method(archive, 'checkSourceUnchanged', (...args) => {
+    check(...args)
+    fingerprinted()
+  })
+  // Backpressure from the blocked archive stops the read partway through the file.
+  const adding = archive.addFileToZip(path, 'extras/large.bin')
+  await firstCheck
+  await appendFile(path, 'appended during the read')
+  blocker.end('ready')
+  await assert.rejects(adding, /large\.bin changed while the WACZ was being written/)
+  assert.equal(await readFile(output, 'utf8'), 'previous archive')
+  assert.deepEqual((await readdir(directory)).sort(), ['large.bin', 'output.wacz'])
+})
+
+test('a WARC changed between indexing and archiving fails the export', async t => {
+  const { archive, directory, output } = await setup(t, { indexFromWARCs: true })
+  const warc = join(directory, 'changing.warc.gz')
+  await copyFile(input, warc)
+  await writeFile(output, 'previous archive')
+  archive.WARCs = [warc]
+  await archive.indexWARCs()
+  await appendFile(warc, 'appended after indexing')
+  await assert.rejects(archive.writeWARCsToZip(), error => /changed while the WACZ was being written/.test(error.cause?.message))
+  assert.equal(await readFile(output, 'utf8'), 'previous archive')
+  assert.deepEqual((await readdir(directory)).sort(), ['changing.warc.gz', 'output.wacz'])
 })
 
 for (const encoding of ['der', 'ieee-p1363']) {
