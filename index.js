@@ -5,6 +5,8 @@ import { createReadStream, WriteStream } from 'fs' // eslint-disable-line
 import { createHash } from 'crypto'
 import { basename, sep, resolve } from 'path'
 import * as readline from 'node:readline/promises'
+import { Readable, Transform } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import assert from 'node:assert/strict'
 
 import { Deflate } from 'pako'
@@ -25,6 +27,18 @@ import { PACKAGE_INFO } from './constants.js'
  * @type {number}
  */
 export const ZIP_NUM_SHARED_INDEX_LIMIT = 3000
+
+/**
+ * Yields copies of successive 64 KiB slices of `data`, so the archive never holds the caller's buffer.
+ * @param {Uint8Array} data
+ * @returns {Generator<Buffer>}
+ */
+function * copiedChunks (data) {
+  const size = 64 * 1024
+  for (let offset = 0; offset < data.byteLength; offset += size) {
+    yield Buffer.from(data.subarray(offset, offset + size))
+  }
+}
 
 /**
  * Utility class allowing for merging multiple .warc / .warc.gz files into a single .wacz file.
@@ -184,6 +198,12 @@ export class WACZ {
 
   /** @type {?AtomicOutput} */
   _output = null
+
+  /**
+   * Input file fingerprints, keyed by resolved path. See `checkSourceUnchanged()`.
+   * @type {Map<string, string>}
+   */
+  _sourceFingerprints = new Map()
 
   /**
    * Path to directory of pages JSONL files to copy as-is into WACZ.
@@ -489,6 +509,7 @@ export class WACZ {
     let completed = false
     try {
       const results = await Promise.all(this.WARCs.map(async filename => {
+        this.checkSourceUnchanged(filename, await fs.stat(filename, { bigint: true }))
         const results = await this.indexWARCPool.run({ filename, detectPages: this.detectPages })
 
         for (const value of results.cdx) {
@@ -685,11 +706,13 @@ export class WACZ {
 
       let isValidJSONL = true
 
-      // Ensure file is valid JSONL
-      const rl = readline.createInterface({ input: createReadStream(pagesFile) })
+      // Validate and archive the same bytes, read once.
+      const pagesData = await fs.readFile(pagesFile)
+      const lines = pagesData.toString('utf8').split(/\r\n|\r|\n/)
+      if (lines.at(-1) === '') lines.pop()
       let lineIndex = 0
 
-      for await (const line of rl) {
+      for (const line of lines) {
         try {
           const page = JSON.parse(line)
           if (lineIndex === 0) {
@@ -709,7 +732,7 @@ export class WACZ {
       }
 
       if (isValidJSONL) {
-        await addFileToZip(pagesFile, `pages/${filename}`)
+        await addFileToZip(pagesData, `pages/${filename}`)
       }
     }
   }
@@ -1012,6 +1035,12 @@ export class WACZ {
    * Adds a file to the output ZIP stream.
    * Automatically keeps trace of file in `this.resources` so it can be referenced in datapackage.json.
    * Must be called before `writeDatapackageToZip()`.
+   * The input is read as it is archived, so the recorded hash and byte count describe the stored bytes. Once this
+   * call resolves, the input is no longer read: a path may be modified, moved or deleted, and a chunk of data may be
+   * reused. Until then the input must not change, or the stored bytes would never have made up the whole input.
+   * A path must also not change after its first read in this export: a WARC is read for indexing before it is
+   * archived, and the index must locate records in the bytes that are stored. A detected change to a path fails the
+   * export (see `checkSourceUnchanged()`).
    * @param {string|Uint8Array} file - File to be added. Can be a path or a chunk of data.
    * @param {string} destination - In-zip path and filename of this file. I.E: "extras/thing.zip"
    * @returns {Promise<WACZDatapackageResource>} - What was added to `this.resources`
@@ -1020,25 +1049,22 @@ export class WACZ {
     let completed = false
     try {
       this.initOutputStreams() // Initializes output streams if needed.
-      const { archiveStream, resources, sha256, byteLength } = this
+      const { resources } = this
 
       destination = String(destination).trim()
 
-      // If path
-      if (file.constructor.name === 'String') {
-        await fs.access(file)
-        await archiveStream.file(file, { name: destination })
-        // If data-chunk
-      } else {
-        await archiveStream.append(file, { name: destination })
-      }
-
-      // Record the resource metadata.
       const resource = {
         name: basename(destination),
-        path: destination,
-        hash: await sha256(file),
-        bytes: await byteLength(file)
+        path: destination
+      }
+
+      // If path
+      if (file.constructor.name === 'String') {
+        Object.assign(resource, await this.appendPathToZip(file, destination))
+        // If data-chunk
+      } else {
+        const source = Readable.from(copiedChunks(file), { objectMode: false })
+        Object.assign(resource, await this.appendStreamToZip(source, destination))
       }
 
       resources.push(resource)
@@ -1047,6 +1073,76 @@ export class WACZ {
       return resource
     } finally {
       if (!completed) await this.dispose()
+    }
+  }
+
+  /**
+   * Streams a file into the output ZIP. See `appendStreamToZip()`.
+   * @param {string} path
+   * @param {string} destination - In-zip path and filename.
+   * @returns {Promise<{hash: string, bytes: number}>}
+   */
+  appendPathToZip = async (path, destination) => {
+    const handle = await fs.open(path)
+    try {
+      this.checkSourceUnchanged(path, await handle.stat({ bigint: true }))
+
+      const digest = await this.appendStreamToZip(handle.createReadStream({ autoClose: false }), destination)
+
+      // Compare the open file and whatever the path now names, to catch both in-place writes and replacement.
+      this.checkSourceUnchanged(path, await handle.stat({ bigint: true }))
+      this.checkSourceUnchanged(path, await fs.stat(path, { bigint: true }))
+
+      return digest
+    } finally {
+      await handle.close()
+    }
+  }
+
+  /**
+   * Pipes `source` into the output ZIP as one entry, hashing and counting its bytes on the way in.
+   * Resolves once every byte has been read from `source`. Bytes still on their way to the output are then held only
+   * in buffers that `source` produced, so `source` must yield chunks that its own input does not share.
+   * @param {import('stream').Readable} source
+   * @param {string} destination - In-zip path and filename.
+   * @returns {Promise<{hash: string, bytes: number}>}
+   */
+  appendStreamToZip = async (source, destination) => {
+    const hash = createHash('sha256')
+    let bytes = 0
+    const digester = new Transform({
+      transform (chunk, _encoding, done) {
+        hash.update(chunk)
+        bytes += chunk.length
+        done(null, chunk)
+      }
+    })
+    this.archiveStream.append(digester, { name: destination })
+    await this._output.run(pipeline(source, digester))
+
+    return { hash: `sha256:${hash.digest('hex')}`, bytes }
+  }
+
+  /**
+   * Records a fingerprint of an input file the first time it is read during this export, and throws if a later
+   * read sees a different one. WARCs are read once for indexing and again for archiving, and any input could change
+   * while it is being read; either would leave indexes or stored bytes describing no single state of the file.
+   * Detection compares metadata only, so a change that preserves size and timestamps (for example, within a
+   * filesystem's timestamp resolution) can go unnoticed.
+   * @param {string} path
+   * @param {import('fs').BigIntStats} stats - From a `{ bigint: true }` stat of `path` or of an open handle to it.
+   * @returns {void}
+   */
+  checkSourceUnchanged = (path, stats) => {
+    const { dev, ino, size, mtimeNs, ctimeNs } = stats
+    const fingerprint = [dev, ino, size, mtimeNs, ctimeNs].join(':')
+    const key = resolve(path)
+    const previous = this._sourceFingerprints.get(key)
+
+    if (previous === undefined) {
+      this._sourceFingerprints.set(key, fingerprint)
+    } else if (previous !== fingerprint) {
+      throw new Error(`${path} changed while the WACZ was being written.`)
     }
   }
 

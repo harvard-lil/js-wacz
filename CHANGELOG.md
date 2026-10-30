@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Compatibility notes
+
+- **`addFileToZip()` is done with its input when it resolves.** Previously a path was read once to hash it and again by the archive later, and a buffer was hashed and then held by reference until the archive reached it, so either input had to stay unchanged until finalization. Both are now read once, as they are written into the archive (buffers in copied 64 KiB pieces), and the call resolves after that read. Afterwards the caller may modify, move or delete the file, or reuse the buffer. The call can also wait for earlier queued entries to be written before it finishes, including for buffers, which previously resolved immediately.
+- **Stable inputs.** Files supplied by path must not change from their first read until they have been archived. WARCs are first read during indexing, and the index must locate records in the bytes that are stored. Any file changed while it is being archived would be stored as bytes that never made up the whole file. A change detected through file metadata (device, inode, size, modification or status-change time) fails the export and preserves an existing destination. Detection can miss a change that keeps the size and falls within the filesystem's timestamp resolution. A log file that is still being written fails the export.
+
+### Fixes
+
+- Hash and count each resource from the same read that writes it into the ZIP, so a file or buffer changed after `addFileToZip()` returns can no longer leave a recorded hash that differs from the stored bytes (#127; regression test adapted from #129).
+- Validate and archive each pages file from a single read.
+- Accept a plain `Uint8Array` in `addFileToZip()`, as documented. Previously only a `Buffer` was accepted; Archiver rejected other byte arrays.
+- Fix an intermittent hang when discarding a failed export. If the output file had not finished opening, cleanup could wait forever for the ZIP stream to end. This showed up as stalled signer-rejection tests under load.
+
 ## 0.2.0 - 2026-09-10
 
 ### Compatibility notes

@@ -35,7 +35,7 @@ export class AtomicOutput {
     this.completion = pipeline(this.archive, this.stream).then(
       () => null,
       error => {
-        this.error ??= error
+        if (!this.closing) this.error ??= error
         this.archive.abort()
         return error
       }
@@ -68,7 +68,9 @@ export class AtomicOutput {
   async cleanup () {
     this.closing = true
     this.archive.abort()
-    this.archive.destroy()
+    // abort() can end the archive's readable side before the output consumes it. Destroying it without an error
+    // then leaves pipeline() waiting for an 'end' event that never comes, so `completion` would never settle.
+    this.archive.destroy(new Error('Archive output discarded.'))
     this.stream.destroy()
     await this.completion
     await rm(this.directory, { recursive: true, force: true })
